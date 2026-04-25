@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shophub-api-gateway
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    networks:
+      - shophub-network
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
+      search-service:
+        condition: service_healthy
+      cart-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+
+networks:
+  shophub-network:
+    external: true

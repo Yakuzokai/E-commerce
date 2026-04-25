@@ -1,0 +1,388 @@
+version: '3.8'
+
+services:
+  # ==================== FRONTEND ====================
+  frontend:
+    build:
+      context: ../frontend/ecommerce-frontend
+      dockerfile: Dockerfile
+    image: shophub/frontend:latest
+    container_name: shophub-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    networks:
+      - shophub-network
+
+  # ==================== API GATEWAY ====================
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    image: shophub/api-gateway:latest
+    container_name: shophub-api-gateway
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    networks:
+      - shophub-network
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+
+  # ==================== BACKEND SERVICES ====================
+  auth-service:
+    build:
+      context: ../microservices/auth-service
+      dockerfile: Dockerfile
+    image: shophub/auth-service:latest
+    container_name: shophub-auth
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=auth_db
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - KAFKA_BROKERS=kafka:9092
+    networks:
+      - shophub-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  user-service:
+    build:
+      context: ../microservices/user-service
+      dockerfile: Dockerfile
+    image: shophub/user-service:latest
+    container_name: shophub-user
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3008
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=user_db
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BROKERS=kafka:9092
+    networks:
+      - shophub-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3008/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  product-service:
+    build:
+      context: ../microservices/product-service
+      dockerfile: Dockerfile
+    image: shophub/product-service:latest
+    container_name: shophub-product
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=product_db
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - KAFKA_BROKERS=kafka:9092
+    networks:
+      - shophub-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  review-service:
+    build:
+      context: ../microservices/review-service
+      dockerfile: Dockerfile
+    image: shophub/review-service:latest
+    container_name: shophub-review
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3009
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=review_db
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BROKERS=kafka:9092
+    networks:
+      - shophub-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3009/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  order-service:
+    build:
+      context: ../microservices/order-service
+      dockerfile: Dockerfile
+    image: shophub/order-service:latest
+    container_name: shophub-order
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3003
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=order_db
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BROKERS=kafka:9092
+    networks:
+      - shophub-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  payment-service:
+    build:
+      context: ../microservices/payment-service
+      dockerfile: Dockerfile
+    image: shophub/payment-service:latest
+    container_name: shophub-payment
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3004
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=payment_db
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BROKERS=kafka:9092
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+    networks:
+      - shophub-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  search-service:
+    build:
+      context: ../microservices/search-service
+      dockerfile: Dockerfile
+    image: shophub/search-service:latest
+    container_name: shophub-search
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3005
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BROKERS=kafka:9092
+    networks:
+      - shophub-network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  recommendation-service:
+    build:
+      context: ../microservices/recommendation-service
+      dockerfile: Dockerfile
+    image: shophub/recommendation-service:latest
+    container_name: shophub-recommendation
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3010
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BROKERS=kafka:9092
+    networks:
+      - shophub-network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3010/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  cart-service:
+    build:
+      context: ../microservices/cart-service
+      dockerfile: Dockerfile
+    image: shophub/cart-service:latest
+    container_name: shophub-cart
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3006
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BROKERS=kafka:9092
+    networks:
+      - shophub-network
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  notification-service:
+    build:
+      context: ../microservices/notification-service
+      dockerfile: Dockerfile
+    image: shophub/notification-service:latest
+    container_name: shophub-notification
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3007
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=notification_db
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BROKERS=kafka:9092
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+    networks:
+      - shophub-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  chat-service:
+    build:
+      context: ../microservices/chat-service
+      dockerfile: Dockerfile
+    image: shophub/chat-service:latest
+    container_name: shophub-chat
+    restart: unless-stopped
+    ports:
+      - "3011:3011"
+    environment:
+      - NODE_ENV=production
+      - PORT=3011
+      - SOCKET_PORT=3011
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=chat_db
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BROKERS=kafka:9092
+    networks:
+      - shophub-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3011/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  shophub-network:
+    driver: bridge
