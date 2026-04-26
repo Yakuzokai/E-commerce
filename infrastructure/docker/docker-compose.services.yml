@@ -383,6 +383,102 @@ services:
       retries: 3
       start_period: 30s
 
+  # ==================== AI & OPTIMIZATION SERVICES ====================
+  ml-service:
+    build:
+      context: ../microservices/ml-service
+      dockerfile: Dockerfile
+    image: shophub/ml-service:latest
+    container_name: shophub-ml
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3012
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ml_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BROKERS=kafka:9092
+      - MODEL_UPDATE_INTERVAL=0 6 * * *
+    networks:
+      - shophub-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3012/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  fraud-detection-service:
+    build:
+      context: ../microservices/fraud-detection-service
+      dockerfile: Dockerfile
+    image: shophub/fraud-detection-service:latest
+    container_name: shophub-fraud
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3013
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/fraud_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BROKERS=kafka:9092
+      - FRAUD_THRESHOLD=0.7
+      - ANOMALY_THRESHOLD=2.5
+    networks:
+      - shophub-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3013/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  analytics-service:
+    build:
+      context: ../microservices/analytics-service
+      dockerfile: Dockerfile
+    image: shophub/analytics-service:latest
+    container_name: shophub-analytics
+    restart: unless-stopped
+    ports:
+      - "3014:3014"
+    environment:
+      - NODE_ENV=production
+      - PORT=3014
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/analytics_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BROKERS=kafka:9092
+    networks:
+      - shophub-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3014/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
 networks:
   shophub-network:
     driver: bridge
