@@ -7,7 +7,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { config } from './config';
 import { logger } from './utils/logger';
-import { connectRedis, disconnectRedis } from './services/cart.service';
+import cartService from './services/cart.service';
 import { connectProducer, disconnectProducer } from './services/kafka.service';
 
 const app = express();
@@ -45,8 +45,7 @@ app.get('/health', (req: Request, res: Response) => {
  */
 app.get('/api/users/:userId/cart', async (req: Request, res: Response) => {
   try {
-    const { getCart } = require('./services/cart.service');
-    const cart = await getCart(req.params.userId);
+    const cart = await cartService.getCart(req.params.userId);
     res.json(cart);
   } catch (error: any) {
     logger.error('Error getting cart', { error: error.message });
@@ -60,8 +59,7 @@ app.get('/api/users/:userId/cart', async (req: Request, res: Response) => {
  */
 app.post('/api/users/:userId/cart/items', async (req: Request, res: Response) => {
   try {
-    const { addToCart } = require('./services/cart.service');
-    const cart = await addToCart(req.params.userId, req.body);
+    const cart = await cartService.addToCart(req.params.userId, req.body);
     res.status(201).json(cart);
   } catch (error: any) {
     logger.error('Error adding to cart', { error: error.message });
@@ -75,9 +73,8 @@ app.post('/api/users/:userId/cart/items', async (req: Request, res: Response) =>
  */
 app.patch('/api/users/:userId/cart/items/:itemId', async (req: Request, res: Response) => {
   try {
-    const { updateCartItem } = require('./services/cart.service');
     const { quantity } = req.body;
-    const cart = await updateCartItem(req.params.userId, req.params.itemId, quantity);
+    const cart = await cartService.updateCartItem(req.params.userId, req.params.itemId, quantity);
     res.json(cart);
   } catch (error: any) {
     logger.error('Error updating cart item', { error: error.message });
@@ -91,8 +88,7 @@ app.patch('/api/users/:userId/cart/items/:itemId', async (req: Request, res: Res
  */
 app.delete('/api/users/:userId/cart/items/:itemId', async (req: Request, res: Response) => {
   try {
-    const { removeFromCart } = require('./services/cart.service');
-    const cart = await removeFromCart(req.params.userId, req.params.itemId);
+    const cart = await cartService.removeFromCart(req.params.userId, req.params.itemId);
     res.json(cart);
   } catch (error: any) {
     logger.error('Error removing from cart', { error: error.message });
@@ -106,8 +102,7 @@ app.delete('/api/users/:userId/cart/items/:itemId', async (req: Request, res: Re
  */
 app.delete('/api/users/:userId/cart', async (req: Request, res: Response) => {
   try {
-    const { clearCart } = require('./services/cart.service');
-    await clearCart(req.params.userId);
+    await cartService.clearCart(req.params.userId);
     res.json({ message: 'Cart cleared' });
   } catch (error: any) {
     logger.error('Error clearing cart', { error: error.message });
@@ -121,8 +116,7 @@ app.delete('/api/users/:userId/cart', async (req: Request, res: Response) => {
  */
 app.post('/api/users/:userId/cart/vouchers', async (req: Request, res: Response) => {
   try {
-    const { applyVoucher } = require('./services/cart.service');
-    const cart = await applyVoucher(req.params.userId, req.body);
+    const cart = await cartService.applyVoucher(req.params.userId, req.body);
     res.json(cart);
   } catch (error: any) {
     logger.error('Error applying voucher', { error: error.message });
@@ -136,8 +130,7 @@ app.post('/api/users/:userId/cart/vouchers', async (req: Request, res: Response)
  */
 app.delete('/api/users/:userId/cart/vouchers/:code', async (req: Request, res: Response) => {
   try {
-    const { removeVoucher } = require('./services/cart.service');
-    const cart = await removeVoucher(req.params.userId, req.params.code);
+    const cart = await cartService.removeVoucher(req.params.userId, req.params.code);
     res.json(cart);
   } catch (error: any) {
     logger.error('Error removing voucher', { error: error.message });
@@ -151,9 +144,8 @@ app.delete('/api/users/:userId/cart/vouchers/:code', async (req: Request, res: R
  */
 app.get('/api/users/:userId/cart/summary', async (req: Request, res: Response) => {
   try {
-    const { getCartSummary } = require('./services/cart.service');
     const shippingFee = parseFloat(req.query.shippingFee as string) || 5.99;
-    const summary = await getCartSummary(req.params.userId, shippingFee);
+    const summary = await cartService.getCartSummary(req.params.userId, shippingFee);
     res.json(summary);
   } catch (error: any) {
     logger.error('Error getting cart summary', { error: error.message });
@@ -167,9 +159,8 @@ app.get('/api/users/:userId/cart/summary', async (req: Request, res: Response) =
  */
 app.post('/api/users/:userId/cart/merge', async (req: Request, res: Response) => {
   try {
-    const { mergeGuestCart } = require('./services/cart.service');
     const { guestCartId, items } = req.body;
-    const cart = await mergeGuestCart(req.params.userId, guestCartId, items);
+    const cart = await cartService.mergeGuestCart(req.params.userId, guestCartId, items);
     res.json(cart);
   } catch (error: any) {
     logger.error('Error merging cart', { error: error.message });
@@ -187,7 +178,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 const shutdown = async () => {
   logger.info('Shutting down...');
   await disconnectProducer();
-  await disconnectRedis();
+  await cartService.disconnectRedis();
   process.exit(0);
 };
 
@@ -197,7 +188,7 @@ process.on('SIGINT', shutdown);
 // Start server
 const start = async () => {
   try {
-    await connectRedis();
+    await cartService.connectRedis();
     await connectProducer();
 
     app.listen(config.port, () => {

@@ -3,7 +3,7 @@
  */
 
 import { createClient, RedisClientType } from 'redis';
-import { config } from '../config';
+import config from '../config';
 import { logger } from '../utils/logger';
 import { Order } from '../types';
 
@@ -20,7 +20,7 @@ export async function connectCache(): Promise<void> {
   if (client && isConnected) return;
 
   client = createClient({
-    url: config.redis.url,
+    url: config.REDIS_URL,
     socket: {
       reconnectStrategy: (retries) => {
         if (retries > 10) {

@@ -3,12 +3,12 @@
  */
 
 import { Kafka, Producer, logLevel } from 'kafkajs';
-import { config } from '../config';
+import config from '../config';
 import { logger } from '../utils/logger';
 
 const kafka = new Kafka({
-  clientId: 'order-service',
-  brokers: config.kafka.brokers,
+  clientId: config.KAFKA_CLIENT_ID || 'order-service',
+  brokers: (config.KAFKA_BROKERS || 'localhost:9092').split(','),
   logLevel: logLevel.WARN,
   retry: {
     initialRetryTime: 100,

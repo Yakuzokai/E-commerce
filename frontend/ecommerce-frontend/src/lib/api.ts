@@ -3,86 +3,80 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import type { Product, ProductDetail, Cart, Order, AuthResponse, User, PaginatedResponse } from '@/types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || 'http://localhost:3001/api/v1';
+const PRODUCT_API_URL = import.meta.env.VITE_PRODUCT_API_URL || 'http://localhost:3003/api/v1';
+const CART_API_URL = import.meta.env.VITE_CART_API_URL || 'http://localhost:3006/api';
+const ORDER_API_URL = import.meta.env.VITE_ORDER_API_URL || 'http://localhost:3004/api';
 
-// Create axios instance
-const api: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+// Create axios instances for different services
+const authInstance: AxiosInstance = axios.create({
+  baseURL: AUTH_API_URL,
   timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// Request interceptor for auth
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+const productInstance: AxiosInstance = axios.create({
+  baseURL: PRODUCT_API_URL,
+  timeout: 30000,
+  headers: { 'Content-Type': 'application/json' },
+});
 
-// Response interceptor for error handling
-api.interceptors.response.use(
-  (response) => response,
-  async (error: AxiosError) => {
-    const originalRequest = error.config as any;
+const cartInstance: AxiosInstance = axios.create({
+  baseURL: CART_API_URL,
+  timeout: 30000,
+  headers: { 'Content-Type': 'application/json' },
+});
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
+const orderInstance: AxiosInstance = axios.create({
+  baseURL: ORDER_API_URL,
+  timeout: 30000,
+  headers: { 'Content-Type': 'application/json' },
+});
 
-      try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (refreshToken) {
-          const response = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
-          const { accessToken, refreshToken: newRefreshToken } = response.data;
-
-          localStorage.setItem('accessToken', accessToken);
-          localStorage.setItem('refreshToken', newRefreshToken);
-
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-          return api(originalRequest);
-        }
-      } catch {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
+// Interceptor helper
+const addAuthInterceptor = (instance: AxiosInstance) => {
+  instance.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem('accessToken');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
       }
-    }
+      return config;
+    },
+    (error) => Promise.reject(error)
+  );
+};
 
-    return Promise.reject(error);
-  }
-);
+addAuthInterceptor(authInstance);
+addAuthInterceptor(productInstance);
+addAuthInterceptor(cartInstance);
+addAuthInterceptor(orderInstance);
 
 // Auth API
 export const authApi = {
   login: async (email: string, password: string): Promise<AuthResponse> => {
-    const response = await api.post('/auth/login', { email, password });
+    const response = await authInstance.post('/auth/login', { email, password });
     return response.data;
   },
 
   register: async (data: { email: string; password: string; firstName?: string; lastName?: string }): Promise<AuthResponse> => {
-    const response = await api.post('/auth/register', data);
+    const response = await authInstance.post('/auth/register', data);
     return response.data;
   },
 
   logout: async (): Promise<void> => {
-    await api.post('/auth/logout');
+    await authInstance.post('/auth/logout');
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
   },
 
   getMe: async (): Promise<{ user: User }> => {
-    const response = await api.get('/auth/me');
+    const response = await authInstance.get('/auth/me');
     return response.data;
   },
 
   refreshToken: async (refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> => {
-    const response = await api.post('/auth/refresh', { refreshToken });
+    const response = await authInstance.post('/auth/refresh', { refreshToken });
     return response.data;
   },
 };
@@ -98,108 +92,80 @@ export const productApi = {
     sortBy?: string;
     sortOrder?: string;
   }): Promise<PaginatedResponse<Product>> => {
-    const response = await api.get('/products', { params });
+    const response = await productInstance.get('/products', { params });
     return response.data;
   },
 
   getById: async (id: string): Promise<{ data: ProductDetail }> => {
-    const response = await api.get(`/products/${id}`);
+    const response = await productInstance.get(`/products/${id}`);
     return response.data;
   },
 
   getBySlug: async (slug: string): Promise<{ data: ProductDetail }> => {
-    const response = await api.get(`/products/slug/${slug}`);
+    const response = await productInstance.get(`/products/slug/${slug}`);
     return response.data;
   },
 
   getTrending: async (limit?: number): Promise<{ data: Product[] }> => {
-    const response = await api.get('/products/trending', { params: { limit } });
+    const response = await productInstance.get('/products/trending', { params: { limit } });
     return response.data;
   },
 
   getFlashSales: async (): Promise<{ data: any[] }> => {
-    const response = await api.get('/products/flash-sales');
+    const response = await productInstance.get('/products/flash-sales');
     return response.data;
   },
 };
 
 // Cart API
 export const cartApi = {
-  get: async (): Promise<Cart> => {
-    const response = await api.get('/cart');
+  get: async (userId: string): Promise<Cart> => {
+    const response = await cartInstance.get(`/users/${userId}/cart`);
     return response.data;
   },
 
-  addItem: async (productId: string, variantId: string, quantity: number): Promise<Cart> => {
-    const response = await api.post('/cart/items', { productId, variantId, quantity });
+  addItem: async (userId: string, productId: string, variantId: string, quantity: number): Promise<Cart> => {
+    const response = await cartInstance.post(`/users/${userId}/cart/items`, { productId, variantId, quantity });
     return response.data;
   },
 
-  updateItem: async (itemId: string, quantity: number): Promise<Cart> => {
-    const response = await api.patch(`/cart/items/${itemId}`, { quantity });
+  updateItem: async (userId: string, itemId: string, quantity: number): Promise<Cart> => {
+    const response = await cartInstance.patch(`/users/${userId}/cart/items/${itemId}`, { quantity });
     return response.data;
   },
 
-  removeItem: async (itemId: string): Promise<Cart> => {
-    const response = await api.delete(`/cart/items/${itemId}`);
+  removeItem: async (userId: string, itemId: string): Promise<Cart> => {
+    const response = await cartInstance.delete(`/users/${userId}/cart/items/${itemId}`);
     return response.data;
   },
 
-  clear: async (): Promise<void> => {
-    await api.delete('/cart');
-  },
-};
-
-// Order API
-export const orderApi = {
-  list: async (params?: { page?: number; limit?: number }): Promise<PaginatedResponse<Order>> => {
-    const response = await api.get('/orders', { params });
-    return response.data;
-  },
-
-  getById: async (id: string): Promise<Order> => {
-    const response = await api.get(`/orders/${id}`);
-    return response.data;
-  },
-
-  create: async (data: { items: Array<{ variantId: string; quantity: number }>; addressId: string }): Promise<Order> => {
-    const response = await api.post('/orders', data);
-    return response.data;
-  },
-
-  cancel: async (id: string, reason?: string): Promise<Order> => {
-    const response = await api.post(`/orders/${id}/cancel`, { reason });
-    return response.data;
+  clear: async (userId: string): Promise<void> => {
+    await cartInstance.delete(`/users/${userId}/cart`);
   },
 };
 
 // Category API
 export const categoryApi = {
   list: async (): Promise<{ data: any[] }> => {
-    const response = await api.get('/categories');
-    return response.data;
-  },
-
-  getBySlug: async (slug: string): Promise<{ data: any }> => {
-    const response = await api.get(`/categories/${slug}`);
+    const response = await productInstance.get('/categories');
     return response.data;
   },
 };
 
-// Wishlist API
-export const wishlistApi = {
-  get: async (): Promise<{ data: Product[] }> => {
-    const response = await api.get('/wishlist');
+// Order API
+export const orderApi = {
+  create: async (orderData: any): Promise<{ data: Order }> => {
+    const response = await orderInstance.post('/orders', orderData);
     return response.data;
   },
-
-  add: async (productId: string, variantId?: string): Promise<void> => {
-    await api.post('/wishlist', { productId, variantId });
+  getById: async (id: string): Promise<{ data: Order }> => {
+    const response = await orderInstance.get(`/orders/${id}`);
+    return response.data;
   },
-
-  remove: async (productId: string): Promise<void> => {
-    await api.delete(`/wishlist/${productId}`);
+  list: async (): Promise<{ data: Order[] }> => {
+    const response = await orderInstance.get('/orders');
+    return response.data;
   },
 };
 
-export default api;
+export default productInstance;

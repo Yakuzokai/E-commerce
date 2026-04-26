@@ -30,27 +30,17 @@ function generateOrderNumber(): string {
  */
 export async function createOrder(
   userId: string,
-  data: CreateOrderRequest
+  data: any // Using any here to allow flexible fields from frontend for now
 ): Promise<OrderWithItems> {
   return await transaction(async (client) => {
     const orderId = uuidv4();
     const orderNumber = generateOrderNumber();
 
-    // Calculate totals (simplified - in production, fetch from product service)
-    const subtotal = 100.00; // Placeholder
-    const shippingFee = subtotal >= 50 ? 0 : 9.99;
+    const subtotal = parseFloat(data.subtotal || 0);
+    const shippingFee = parseFloat(data.shippingFee || 0);
     const taxAmount = subtotal * 0.08;
     const discountAmount = 0;
     const totalAmount = subtotal + shippingFee + taxAmount - discountAmount;
-
-    // Shipping address placeholder
-    const shippingAddress: Address = {
-      street: '123 Main St',
-      city: 'San Francisco',
-      state: 'CA',
-      country: 'USA',
-      zipCode: '94102',
-    };
 
     // Create order
     const orderResult = await client.query<Order>(
@@ -61,9 +51,9 @@ export async function createOrder(
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING *`,
       [
-        orderId, orderNumber, userId, 'seller-id', subtotal, discountAmount,
-        shippingFee, taxAmount, totalAmount, data.paymentMethod, 'pending',
-        JSON.stringify(shippingAddress), 'pending'
+        orderId, orderNumber, userId, data.items[0]?.sellerId || uuidv4(), 
+        subtotal, discountAmount, shippingFee, taxAmount, totalAmount, 
+        data.paymentMethod, 'pending', JSON.stringify(data.shippingAddress), 'pending'
       ]
     );
 
@@ -80,8 +70,9 @@ export async function createOrder(
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *`,
         [
-          itemId, orderId, item.productId, item.variantId, 'seller-id',
-          'Product Name', item.quantity, 100.00, 100.00 * item.quantity
+          itemId, orderId, item.productId, item.variantId, item.sellerId || uuidv4(),
+          item.name || 'Product', item.quantity, parseFloat(item.price), 
+          parseFloat(item.price) * item.quantity
         ]
       );
       items.push(itemResult.rows[0]);

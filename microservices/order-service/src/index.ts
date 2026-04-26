@@ -5,7 +5,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { config } from './config';
+import config from './config';
 import { logger } from './utils/logger';
 import { runMigrations } from './db/migrate';
 import { connectProducer, disconnectProducer } from './services/kafka.service';
@@ -285,8 +285,8 @@ const start = async () => {
     await connectCache();
 
     // Start HTTP server
-    app.listen(config.port, () => {
-      logger.info(`Order service listening on port ${config.port}`);
+    app.listen(config.PORT, () => {
+      logger.info(`Order service listening on port ${config.PORT}`);
     });
   } catch (error) {
     logger.error('Failed to start server', { error });

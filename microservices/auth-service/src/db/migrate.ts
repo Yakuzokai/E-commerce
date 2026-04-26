@@ -181,18 +181,18 @@ async function runMigrations() {
   } catch (error) {
     logger.error('Migration failed', { error: (error as Error).message });
     throw error;
-  } finally {
-    await closePool();
   }
 }
 
 // Run if executed directly
 if (require.main === module) {
   runMigrations()
-    .then(() => {
+    .then(async () => {
+      await closePool();
       process.exit(0);
     })
-    .catch(() => {
+    .catch(async (error) => {
+      await closePool();
       process.exit(1);
     });
 }

@@ -150,6 +150,8 @@ export async function login(
 
   // Find user
   const user = await getUserByEmail(data.email);
+  logger.info('Login attempt', { email: data.email, found: !!user, hasHash: !!user?.passwordHash });
+  
   if (!user) {
     await incrementFailedLogin(data.email);
     throw new AuthError('Invalid email or password', 'INVALID_CREDENTIALS', 401);
@@ -157,6 +159,7 @@ export async function login(
 
   // Check password
   if (!user.passwordHash) {
+    logger.warn('OAuth account detection', { userId: user.id, email: user.email });
     throw new AuthError(
       'This account uses OAuth login. Please sign in with the same provider.',
       'OAUTH_ACCOUNT',

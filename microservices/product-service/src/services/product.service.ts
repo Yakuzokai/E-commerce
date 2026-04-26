@@ -232,8 +232,34 @@ export async function listProducts(
     paramIndex++;
   }
 
-  const sortBy = filters.sortBy || 'created_at';
-  const sortOrder = filters.sortOrder?.toUpperCase() || 'DESC';
+  // Sort mapping
+  let sortField = 'created_at';
+  let order = filters.sortOrder?.toUpperCase() || 'DESC';
+
+  switch (filters.sortBy) {
+    case 'popular':
+      sortField = '(sold_count * 2 + view_count)';
+      break;
+    case 'latest':
+      sortField = 'created_at';
+      break;
+    case 'price_asc':
+      sortField = 'min_price';
+      order = 'ASC';
+      break;
+    case 'price_desc':
+      sortField = 'min_price';
+      order = 'DESC';
+      break;
+    case 'rating':
+      sortField = 'rating_avg';
+      break;
+    case 'sold':
+      sortField = 'sold_count';
+      break;
+    default:
+      sortField = 'created_at';
+  }
 
   const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
@@ -246,17 +272,31 @@ export async function listProducts(
 
   // Get products
   const offset = (page - 1) * limit;
+  const limitIndex = paramIndex++;
+  const offsetIndex = paramIndex++;
   values.push(limit, offset);
 
-  const result = await query<Product>(
-    `SELECT p.* FROM products p ${whereClause}
-     ORDER BY ${sortBy} ${sortOrder}
-     LIMIT $${paramIndex++} OFFSET $${paramIndex}`,
+  // Get products with primary image and min price
+  const result = await query<any>(
+    `SELECT p.*, 
+            (SELECT url FROM product_images WHERE product_id = p.id AND is_primary = true LIMIT 1) as primary_image,
+            (SELECT MIN(price) FROM product_variants WHERE product_id = p.id) as min_price,
+            (SELECT MIN(original_price) FROM product_variants WHERE product_id = p.id) as min_original_price
+     FROM products p ${whereClause}
+     ORDER BY ${sortField} ${order}
+     LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
     values
   );
 
+  // Map database rows to the format expected by the frontend
+  const products = result.rows.map((row: any) => ({
+    ...row,
+    images: row.primary_image ? [{ url: row.primary_image, is_primary: true }] : [],
+    variants: [{ price: parseFloat(row.min_price), originalPrice: row.min_original_price ? parseFloat(row.min_original_price) : undefined }]
+  }));
+
   return {
-    data: result.rows,
+    data: products,
     pagination: {
       page,
       limit,
@@ -462,6 +502,14 @@ export async function getFlashSaleProducts(): Promise<any[]> {
 
   await cacheSet(cacheKey, result.rows, 60); // 1 minute cache
 
+  return result.rows;
+}
+
+/**
+ * List all categories
+ */
+export async function listCategories(): Promise<any[]> {
+  const result = await query('SELECT * FROM categories WHERE is_active = true ORDER BY name ASC');
   return result.rows;
 }
 

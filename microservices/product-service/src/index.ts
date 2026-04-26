@@ -40,6 +40,16 @@ app.get('/health/ready', async (req, res) => {
 });
 
 // Product Routes
+app.get('/api/v1/categories', async (req, res) => {
+  try {
+    const categories = await productService.listCategories();
+    res.json({ data: categories });
+  } catch (error) {
+    logger.error('List categories error', { error: (error as Error).message });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.get('/api/v1/products', async (req: Request, res: Response) => {
   try {
     const { page = 1, limit = 20, categoryId, brandId, search, sortBy, sortOrder } = req.query;

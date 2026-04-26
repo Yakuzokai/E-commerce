@@ -2,8 +2,8 @@
 
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { Search, ShoppingCart, User, Menu, X, Heart, Package } from 'lucide-react';
-import { useCartStore } from '@/stores';
+import { Search, ShoppingCart, User, Menu, X, Heart, Package, LogOut } from 'lucide-react';
+import { useCartStore, useAuthStore } from '@/stores';
 
 interface HeaderProps {
   onCartClick: () => void;
@@ -14,6 +14,7 @@ export default function Header({ onCartClick }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { totalItems } = useCartStore();
+  const { user, isAuthenticated, logout } = useAuthStore();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,6 +22,11 @@ export default function Header({ onCartClick }: HeaderProps) {
       navigate(`/products?search=${encodeURIComponent(searchQuery)}`);
       setSearchQuery('');
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
   };
 
   return (
@@ -69,13 +75,47 @@ export default function Header({ onCartClick }: HeaderProps) {
           {/* Actions */}
           <div className="flex items-center gap-4">
             {/* Account */}
-            <Link
-              to="/account"
-              className="flex items-center gap-2 text-gray-700 hover:text-primary-600 transition-colors"
-            >
-              <User className="w-6 h-6" />
-              <span className="hidden md:inline">Account</span>
-            </Link>
+            {isAuthenticated ? (
+              <div className="relative group">
+                <Link
+                  to="/account"
+                  className="flex items-center gap-2 text-gray-700 hover:text-primary-600 transition-colors"
+                >
+                  {user?.avatarUrl ? (
+                    <img src={user.avatarUrl} alt={user.firstName} className="w-8 h-8 rounded-full" />
+                  ) : (
+                    <div className="w-8 h-8 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center font-bold">
+                      {user?.firstName?.charAt(0) || 'U'}
+                    </div>
+                  )}
+                  <span className="hidden lg:inline">{user?.firstName || 'Account'}</span>
+                </Link>
+                <div className="absolute right-0 top-full pt-2 w-48 hidden group-hover:block z-50">
+                  <div className="bg-white shadow-lg rounded-lg border py-2">
+                    <Link to="/account" className="block px-4 py-2 hover:bg-gray-50 flex items-center gap-2">
+                      <User className="w-4 h-4" /> My Profile
+                    </Link>
+                    <Link to="/orders" className="block px-4 py-2 hover:bg-gray-50 flex items-center gap-2">
+                      <Package className="w-4 h-4" /> My Orders
+                    </Link>
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2 hover:bg-gray-50 text-red-600 flex items-center gap-2"
+                    >
+                      <LogOut className="w-4 h-4" /> Logout
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className="flex items-center gap-2 text-gray-700 hover:text-primary-600 transition-colors"
+              >
+                <User className="w-6 h-6" />
+                <span className="hidden md:inline">Login</span>
+              </Link>
+            )}
 
             {/* Wishlist */}
             <Link
@@ -124,7 +164,7 @@ export default function Header({ onCartClick }: HeaderProps) {
             <Link to="/products?category=fashion" className="text-gray-700 hover:text-primary-600">
               Fashion
             </Link>
-            <Link to="/products?category=home" className="text-gray-700 hover:text-primary-600">
+            <Link to="/products?category=home-living" className="text-gray-700 hover:text-primary-600">
               Home & Living
             </Link>
             <Link to="/products?category=beauty" className="text-gray-700 hover:text-primary-600">
@@ -147,7 +187,7 @@ export default function Header({ onCartClick }: HeaderProps) {
             <Link to="/products" className="py-2 text-gray-700 font-medium">All Products</Link>
             <Link to="/products?category=electronics" className="py-2 text-gray-700">Electronics</Link>
             <Link to="/products?category=fashion" className="py-2 text-gray-700">Fashion</Link>
-            <Link to="/products?category=home" className="py-2 text-gray-700">Home & Living</Link>
+            <Link to="/products?category=home-living" className="py-2 text-gray-700">Home & Living</Link>
             <Link to="/products?category=beauty" className="py-2 text-gray-700">Beauty</Link>
             <Link to="/flash-sales" className="py-2 text-accent-500 font-medium">Flash Sales</Link>
             <hr className="my-2" />

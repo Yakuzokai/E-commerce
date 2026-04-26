@@ -87,8 +87,8 @@ export async function getUserById(id: string): Promise<User | null> {
  * Get user by email
  */
 export async function getUserByEmail(email: string): Promise<User | null> {
-  const result = await query<User>(
-    'SELECT * FROM users WHERE email = $1 AND deleted_at IS NULL',
+  const result = await query<any>(
+    'SELECT id, email, password_hash, phone, first_name, last_name, avatar_url, role, status, email_verified, phone_verified, last_login_at, created_at, updated_at FROM users WHERE email = $1 AND deleted_at IS NULL',
     [email]
   );
 
@@ -96,7 +96,21 @@ export async function getUserByEmail(email: string): Promise<User | null> {
     return null;
   }
 
-  return result.rows[0];
+  const row = result.rows[0];
+  // Explicitly map snake_case from DB to camelCase if needed, 
+  // but most importantly ensure passwordHash is populated
+  return {
+    ...row,
+    passwordHash: row.password_hash,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    avatarUrl: row.avatar_url,
+    emailVerified: row.email_verified,
+    phoneVerified: row.phone_verified,
+    lastLoginAt: row.last_login_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  } as User;
 }
 
 /**

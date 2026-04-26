@@ -169,4 +169,21 @@ router.get(
   })
 );
 
+/**
+ * GET /auth/test-login
+ * Temporary route to test login logic
+ */
+router.get(
+  '/test-login',
+  asyncHandler(async (req: Request, res: Response) => {
+    const { login } = await import('../services/auth.service');
+    try {
+      const result = await login({ email: 'user@example.com', password: 'password123' });
+      res.json({ success: true, user: result.user });
+    } catch (error: any) {
+      res.status(401).json({ success: false, error: error.message, code: error.code });
+    }
+  })
+);
+
 export default router;
