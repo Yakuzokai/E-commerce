@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import { query, closePool } from './index';
 import { config } from '../config';
 import { logger } from '../utils/logger';
 
@@ -30,10 +30,10 @@ const migrations = [
         sent_at TIMESTAMP WITH TIME ZONE
       );
 
-      CREATE INDEX idx_notifications_user_id ON notifications(user_id);
-      CREATE INDEX idx_notifications_status ON notifications(status);
-      CREATE INDEX idx_notifications_type ON notifications(type);
-      CREATE INDEX idx_notifications_created_at ON notifications(created_at);
+      CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+      CREATE INDEX IF NOT EXISTS idx_notifications_status ON notifications(status);
+      CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
+      CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
     `,
   },
   {
@@ -64,57 +64,27 @@ const migrations = [
         sent_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
 
-      CREATE INDEX idx_notification_logs_notification_id ON notification_logs(notification_id);
+      CREATE INDEX IF NOT EXISTS idx_notification_logs_notification_id ON notification_logs(notification_id);
     `,
   },
 ];
 
 export async function runMigrations(): Promise<void> {
-  const adminPool = new Pool({
-    host: config.db.host,
-    port: config.db.port,
-    database: 'postgres',
-    user: config.db.user,
-    password: config.db.password,
-  });
-
   try {
-    const dbCheck = await adminPool.query(
-      `SELECT 1 FROM pg_database WHERE datname = $1`,
-      [config.db.database]
-    );
+    // We assume the database already exists (ecommerce_db)
+    const migrationsTable = migrations.find(m => m.name === 'create_migrations_table');
+    if (migrationsTable) await query(migrationsTable.up);
 
-    if (dbCheck.rows.length === 0) {
-      await adminPool.query(`CREATE DATABASE ${config.db.database}`);
-      logger.info(`Database ${config.db.database} created`);
-    }
-  } catch (error: any) {
-    if (!error.message.includes('already exists')) {
-      logger.error('Error creating database', { error: error.message });
-    }
-  } finally {
-    await adminPool.end();
-  }
-
-  const pool = new Pool({
-    host: config.db.host,
-    port: config.db.port,
-    database: config.db.database,
-    user: config.db.user,
-    password: config.db.password,
-  });
-
-  try {
-    await pool.query(migrations.find(m => m.name === 'create_migrations_table')!.up);
-
-    const result = await pool.query('SELECT name FROM migrations');
-    const executed = new Set(result.rows.map((r: any) => r.name));
+    const executedResult = await query<any>('SELECT name FROM migrations');
+    const executed = new Set(executedResult.map((r: any) => r.name));
 
     for (const migration of migrations) {
+      if (migration.name === 'create_migrations_table') continue;
+      
       if (!executed.has(migration.name)) {
         logger.info(`Running migration: ${migration.name}`);
-        await pool.query(migration.up);
-        await pool.query('INSERT INTO migrations (name) VALUES ($1)', [migration.name]);
+        await query(migration.up);
+        await query('INSERT INTO migrations (name) VALUES ($1)', [migration.name]);
         logger.info(`Migration completed: ${migration.name}`);
       }
     }
@@ -123,19 +93,19 @@ export async function runMigrations(): Promise<void> {
   } catch (error: any) {
     logger.error('Migration error', { error: error.message });
     throw error;
-  } finally {
-    await pool.end();
   }
 }
 
 if (require.main === module) {
   runMigrations()
-    .then(() => {
+    .then(async () => {
       logger.info('Migrations finished');
+      await closePool();
       process.exit(0);
     })
-    .catch((error) => {
+    .catch(async (error) => {
       logger.error('Migration failed', { error: error.message });
+      await closePool();
       process.exit(1);
     });
 }

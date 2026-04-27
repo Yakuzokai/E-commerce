@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install && npm cache clean --force
 
 # Copy source
 COPY . .
@@ -25,7 +25,7 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
-COPY --from=builder --chown=nodejs:nodejs /app/package-lock.json ./
+# package-lock.json might be missing
 
 # Switch to non-root user
 USER nodejs

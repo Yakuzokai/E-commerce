@@ -15,26 +15,27 @@ echo ===================================================
 echo [2/3] Starting Backend Microservices...
 echo ===================================================
 
-:: Start Auth Service
-start "Auth Service" cmd /k "cd microservices/auth-service && npm run dev"
+:: Core Services
+start "Auth" cmd /k "cd microservices/auth-service && npm run dev"
+start "User" cmd /k "cd microservices/user-service && npm run dev"
+start "Product" cmd /k "cd microservices/product-service && npm run dev"
+start "Cart" cmd /k "cd microservices/cart-service && npm run dev"
+start "Order" cmd /k "cd microservices/order-service && npm run dev"
+start "Payment" cmd /k "cd microservices/payment-service && npm run dev"
 
-:: Start Product Service
-start "Product Service" cmd /k "cd microservices/product-service && npm run dev"
+:: Search & AI
+start "Search" cmd /k "cd microservices/search-service && npm run dev"
+start "ML" cmd /k "cd microservices/ml-service && npm run dev"
+start "Recommendation" cmd /k "cd microservices/recommendation-service && npm run dev"
 
-:: Start Order Service
-start "Order Service" cmd /k "cd microservices/order-service && npm run dev"
+:: Communications & Support
+start "Notification" cmd /k "cd microservices/notification-service && npm run dev"
+start "Chat" cmd /k "cd microservices/chat-service && npm run dev"
+start "Review" cmd /k "cd microservices/review-service && npm run dev"
 
-:: Start Cart Service
-start "Cart Service" cmd /k "cd microservices/cart-service && npm run dev"
-
-:: Start Payment Service
-start "Payment Service" cmd /k "cd microservices/payment-service && npm run dev"
-
-:: Start Search Service
-start "Search Service" cmd /k "cd microservices/search-service && npm run dev"
-
-:: Start Notification Service
-start "Notification Service" cmd /k "cd microservices/notification-service && npm run dev"
+:: Operations
+start "Analytics" cmd /k "cd microservices/analytics-service && npm run dev"
+start "Fraud" cmd /k "cd microservices/fraud-detection-service && npm run dev"
 
 echo ===================================================
 echo [3/3] Starting Frontend...
@@ -44,11 +45,8 @@ echo ===================================================
 start "Frontend UI" cmd /k "cd frontend/ecommerce-frontend && npm run dev"
 
 echo ---------------------------------------------------
-echo All services are starting! 
-echo Dashboard URLs:
-echo - Frontend: http://localhost:5173
-echo - Kafka UI: http://localhost:8080
-echo - Kibana:   http://localhost:5601
-echo - Grafana:  http://localhost:3002
+echo All 14 services and Frontend are starting! 
+echo 
+echo Important: Some services may take a minute to initialize.
 echo ---------------------------------------------------
 pause

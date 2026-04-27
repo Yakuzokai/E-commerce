@@ -4,7 +4,7 @@ services:
   # ==================== FRONTEND ====================
   frontend:
     build:
-      context: ../frontend/ecommerce-frontend
+      context: ../../frontend/ecommerce-frontend
       dockerfile: Dockerfile
     image: shophub/frontend:latest
     container_name: shophub-frontend
@@ -17,7 +17,7 @@ services:
   # ==================== API GATEWAY ====================
   api-gateway:
     build:
-      context: ./api-gateway
+      context: ../api-gateway
       dockerfile: Dockerfile
     image: shophub/api-gateway:latest
     container_name: shophub-api-gateway
@@ -35,7 +35,7 @@ services:
   # ==================== BACKEND SERVICES ====================
   auth-service:
     build:
-      context: ../microservices/auth-service
+      context: ../../microservices/auth-service
       dockerfile: Dockerfile
     image: shophub/auth-service:latest
     container_name: shophub-auth
@@ -69,7 +69,7 @@ services:
 
   user-service:
     build:
-      context: ../microservices/user-service
+      context: ../../microservices/user-service
       dockerfile: Dockerfile
     image: shophub/user-service:latest
     container_name: shophub-user
@@ -101,7 +101,7 @@ services:
 
   product-service:
     build:
-      context: ../microservices/product-service
+      context: ../../microservices/product-service
       dockerfile: Dockerfile
     image: shophub/product-service:latest
     container_name: shophub-product
@@ -136,7 +136,7 @@ services:
 
   review-service:
     build:
-      context: ../microservices/review-service
+      context: ../../microservices/review-service
       dockerfile: Dockerfile
     image: shophub/review-service:latest
     container_name: shophub-review
@@ -168,7 +168,7 @@ services:
 
   order-service:
     build:
-      context: ../microservices/order-service
+      context: ../../microservices/order-service
       dockerfile: Dockerfile
     image: shophub/order-service:latest
     container_name: shophub-order
@@ -200,7 +200,7 @@ services:
 
   payment-service:
     build:
-      context: ../microservices/payment-service
+      context: ../../microservices/payment-service
       dockerfile: Dockerfile
     image: shophub/payment-service:latest
     container_name: shophub-payment
@@ -233,7 +233,7 @@ services:
 
   search-service:
     build:
-      context: ../microservices/search-service
+      context: ../../microservices/search-service
       dockerfile: Dockerfile
     image: shophub/search-service:latest
     container_name: shophub-search
@@ -261,7 +261,7 @@ services:
 
   recommendation-service:
     build:
-      context: ../microservices/recommendation-service
+      context: ../../microservices/recommendation-service
       dockerfile: Dockerfile
     image: shophub/recommendation-service:latest
     container_name: shophub-recommendation
@@ -289,7 +289,7 @@ services:
 
   cart-service:
     build:
-      context: ../microservices/cart-service
+      context: ../../microservices/cart-service
       dockerfile: Dockerfile
     image: shophub/cart-service:latest
     container_name: shophub-cart
@@ -314,7 +314,7 @@ services:
 
   notification-service:
     build:
-      context: ../microservices/notification-service
+      context: ../../microservices/notification-service
       dockerfile: Dockerfile
     image: shophub/notification-service:latest
     container_name: shophub-notification
@@ -350,7 +350,7 @@ services:
 
   chat-service:
     build:
-      context: ../microservices/chat-service
+      context: ../../microservices/chat-service
       dockerfile: Dockerfile
     image: shophub/chat-service:latest
     container_name: shophub-chat
@@ -386,7 +386,7 @@ services:
   # ==================== AI & OPTIMIZATION SERVICES ====================
   ml-service:
     build:
-      context: ../microservices/ml-service
+      context: ../../microservices/ml-service
       dockerfile: Dockerfile
     image: shophub/ml-service:latest
     container_name: shophub-ml
@@ -417,7 +417,7 @@ services:
 
   fraud-detection-service:
     build:
-      context: ../microservices/fraud-detection-service
+      context: ../../microservices/fraud-detection-service
       dockerfile: Dockerfile
     image: shophub/fraud-detection-service:latest
     container_name: shophub-fraud
@@ -449,7 +449,7 @@ services:
 
   analytics-service:
     build:
-      context: ../microservices/analytics-service
+      context: ../../microservices/analytics-service
       dockerfile: Dockerfile
     image: shophub/analytics-service:latest
     container_name: shophub-analytics
