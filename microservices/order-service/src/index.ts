@@ -5,6 +5,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import jwt from 'jsonwebtoken';
 import config from './config';
 import { logger } from './utils/logger';
 import { runMigrations } from './db/migrate';
@@ -34,6 +35,58 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+// Authentication middleware
+interface AuthRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    role: string;
+  };
+}
+
+const authenticate = (req: Request, res: Response, next: NextFunction): void => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({
+        error: 'Authentication required. Please login to continue.',
+        code: 'UNAUTHORIZED',
+      });
+      return;
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    const decoded = jwt.verify(token, config.JWT_SECRET) as {
+      userId: string;
+      email: string;
+      role: string;
+    };
+
+    (req as AuthRequest).user = {
+      userId: decoded.userId,
+      email: decoded.email,
+      role: decoded.role,
+    };
+
+    next();
+  } catch (error: any) {
+    if (error.name === 'TokenExpiredError') {
+      res.status(401).json({
+        error: 'Session expired. Please login again.',
+        code: 'TOKEN_EXPIRED',
+      });
+      return;
+    }
+
+    res.status(401).json({
+      error: 'Invalid authentication token.',
+      code: 'INVALID_TOKEN',
+    });
+  }
+};
+
 // Health check
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'healthy', service: 'order-service' });
@@ -44,15 +97,17 @@ app.get('/health', (req: Request, res: Response) => {
 /**
  * Create a new order
  * POST /api/orders
+ * Requires authentication
  */
-app.post('/api/orders', async (req: Request, res: Response) => {
+app.post('/api/orders', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const { userId } = req.body;
-    const orderData = req.body;
+    const userId = req.user?.userId;
 
     if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
+      return res.status(401).json({ error: 'Authentication required' });
     }
+
+    const orderData = req.body;
 
     const order = await orderService.createOrder(userId, orderData);
     res.status(201).json(order);
@@ -65,8 +120,9 @@ app.post('/api/orders', async (req: Request, res: Response) => {
 /**
  * Get order by ID
  * GET /api/orders/:id
+ * Requires authentication
  */
-app.get('/api/orders/:id', async (req: Request, res: Response) => {
+app.get('/api/orders/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const order = await orderService.getOrderById(id);
@@ -105,12 +161,19 @@ app.get('/api/orders/number/:orderNumber', async (req: Request, res: Response) =
 /**
  * Get orders for a user
  * GET /api/users/:userId/orders
+ * Requires authentication
  */
-app.get('/api/users/:userId/orders', async (req: Request, res: Response) => {
+app.get('/api/users/:userId/orders', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { userId } = req.params;
+    const requestingUserId = req.user?.userId;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
+
+    // Users can only view their own orders unless they have admin role
+    if (userId !== requestingUserId && req.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. You can only view your own orders.' });
+    }
 
     const result = await orderService.getOrdersByUser(userId, page, limit);
     res.json(result);
@@ -121,10 +184,30 @@ app.get('/api/users/:userId/orders', async (req: Request, res: Response) => {
 });
 
 /**
+ * Get current user's orders
+ * GET /api/orders
+ * Requires authentication
+ */
+app.get('/api/orders', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+
+    const result = await orderService.getOrdersByUser(userId!, page, limit);
+    res.json(result);
+  } catch (error: any) {
+    logger.error('Error getting orders', { error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * Get orders for a seller
  * GET /api/sellers/:sellerId/orders
+ * Requires authentication
  */
-app.get('/api/sellers/:sellerId/orders', async (req: Request, res: Response) => {
+app.get('/api/sellers/:sellerId/orders', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { sellerId } = req.params;
     const page = parseInt(req.query.page as string) || 1;
@@ -142,8 +225,9 @@ app.get('/api/sellers/:sellerId/orders', async (req: Request, res: Response) => 
 /**
  * Update order status
  * PATCH /api/orders/:id/status
+ * Requires authentication
  */
-app.patch('/api/orders/:id/status', async (req: Request, res: Response) => {
+app.patch('/api/orders/:id/status', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { status, description, changedBy } = req.body;
@@ -164,8 +248,9 @@ app.patch('/api/orders/:id/status', async (req: Request, res: Response) => {
 /**
  * Update payment status
  * PATCH /api/orders/:id/payment
+ * Requires authentication
  */
-app.patch('/api/orders/:id/payment', async (req: Request, res: Response) => {
+app.patch('/api/orders/:id/payment', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { paymentStatus } = req.body;
@@ -190,14 +275,16 @@ app.patch('/api/orders/:id/payment', async (req: Request, res: Response) => {
 /**
  * Cancel order
  * POST /api/orders/:id/cancel
+ * Requires authentication
  */
-app.post('/api/orders/:id/cancel', async (req: Request, res: Response) => {
+app.post('/api/orders/:id/cancel', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { reason, userId } = req.body;
+    const { reason } = req.body;
+    const userId = req.user?.userId;
 
     if (!reason || !userId) {
-      return res.status(400).json({ error: 'Reason and userId are required' });
+      return res.status(400).json({ error: 'Reason is required' });
     }
 
     const order = await orderService.cancelOrder(id, reason, userId);
@@ -219,8 +306,9 @@ app.post('/api/orders/:id/cancel', async (req: Request, res: Response) => {
 /**
  * Create return request
  * POST /api/orders/:id/returns
+ * Requires authentication
  */
-app.post('/api/orders/:id/returns', async (req: Request, res: Response) => {
+app.post('/api/orders/:id/returns', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { reason, description } = req.body;
@@ -240,8 +328,9 @@ app.post('/api/orders/:id/returns', async (req: Request, res: Response) => {
 /**
  * Get order statistics for seller
  * GET /api/sellers/:sellerId/stats
+ * Requires authentication
  */
-app.get('/api/sellers/:sellerId/stats', async (req: Request, res: Response) => {
+app.get('/api/sellers/:sellerId/stats', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { sellerId } = req.params;
     const stats = await orderService.getOrderStats(sellerId);

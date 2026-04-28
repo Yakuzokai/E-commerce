@@ -6,7 +6,7 @@ import { orderApi, userApi, Address } from '@/lib/api';
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
-  const { items: cart, subtotal, totalItems, clearCart } = useCartStore();
+  const { items, subtotal, totalItems, clearCart } = useCartStore();
   const { user, isAuthenticated } = useAuthStore();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -92,13 +92,13 @@ export default function CheckoutPage() {
       // Format data for Order Service
       const orderData = {
         userId: user?.id,
-        items: cart.map(item => ({
+        items: items.map(item => ({
           productId: item.productId,
           variantId: item.variantId,
           quantity: item.quantity,
           price: item.variant.price,
           name: item.product.name,
-          sellerId: item.product.sellerId || (item.product as any).seller_id
+sellerId: item.product.sellerId
         })),
         shippingAddress: {
           street: formData.address,
