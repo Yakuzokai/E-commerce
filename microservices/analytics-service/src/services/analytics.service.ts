@@ -65,6 +65,8 @@ export class AnalyticsService {
       await this.trackEvent('user_registered', data);
     });
 
+    await kafkaService.start();
+
     logger.info('Analytics service initialized');
   }
 
@@ -106,8 +108,8 @@ export class AnalyticsService {
     if (event.eventType === 'order_completed' || event.eventType === 'payment_processed') {
       if (event.value) {
         // Revenue
-        await cacheService.redis.incrbyfloat(`counters:total_revenue`, event.value);
-        await cacheService.redis.incrbyfloat(`counters:daily:${dayKey}:revenue`, event.value);
+        await cacheService.incrbyfloat(`counters:total_revenue`, event.value);
+        await cacheService.incrbyfloat(`counters:daily:${dayKey}:revenue`, event.value);
       }
 
       // Orders
@@ -128,8 +130,8 @@ export class AnalyticsService {
     // Active users (rolling window)
     if (event.userId) {
       const minuteKey = this.getMinuteKey(event.timestamp);
-      await cacheService.redis.sadd(`active_users:${minuteKey}`, event.userId);
-      await cacheService.redis.expire(`active_users:${minuteKey}`, 3600); // 1 hour
+      await cacheService.sadd(`active_users:${minuteKey}`, event.userId);
+      await cacheService.expire(`active_users:${minuteKey}`, 3600); // 1 hour
     }
   }
 
@@ -148,7 +150,7 @@ export class AnalyticsService {
     }
 
     // Keep last 30 days of hourly data
-    await cacheService.redis.zremrangebyscore('timeseries:hourly_revenue', '-inf', this.getDayTimestamp(Date.now() - 30 * 24 * 3600000));
+    await cacheService.zremrangebyscore('timeseries:hourly_revenue', '-inf', this.getDayTimestamp(Date.now() - 30 * 24 * 3600000));
   }
 
   private async updateAggregations(event: AnalyticsEvent): Promise<void> {
@@ -210,8 +212,9 @@ export class AnalyticsService {
 
     // Conversion rate (orders / views)
     const totalViews = await cacheService.get<number>('counters:total_product_views');
-    metrics.conversionRate = totalViews > 0
-      ? (metrics.totalOrders / totalViews) * 100
+    const viewsCount = totalViews ?? 0;
+    metrics.conversionRate = viewsCount > 0
+      ? (metrics.totalOrders / viewsCount) * 100
       : 0;
 
     // Get top categories
@@ -233,14 +236,14 @@ export class AnalyticsService {
     let activeUsersCount = 0;
     for (let i = 0; i < 5; i++) {
       const minuteKey = this.getMinuteKey(now - i * 60000);
-      const users = await cacheService.redis.smembers(`active_users:${minuteKey}`);
+      const users = await cacheService.smembers(`active_users:${minuteKey}`);
       activeUsersCount += users.length;
     }
 
     // Get current rates (last hour aggregated to per-minute)
     const currentHour = this.getHourKey(now);
-    const revenuePerHour = await cacheService.zscore('timeseries:hourly_revenue', currentHour) || 0;
-    const ordersPerHour = await cacheService.zscore('timeseries:hourly_orders', currentHour) || 0;
+    const revenuePerHour = (await cacheService.zscore('timeseries:hourly_revenue', currentHour)) || 0;
+    const ordersPerHour = (await cacheService.zscore('timeseries:hourly_orders', currentHour)) || 0;
 
     return {
       activeUsers: activeUsersCount,
@@ -256,8 +259,8 @@ export class AnalyticsService {
 
     for (let i = 0; i < hours; i++) {
       const hourKey = this.getHourKey(Date.now() - i * 3600000);
-      const revenue = await cacheService.zscore('timeseries:hourly_revenue', hourKey) || 0;
-      const orders = await cacheService.zscore('timeseries:hourly_orders', hourKey) || 0;
+      const revenue = (await cacheService.zscore('timeseries:hourly_revenue', hourKey)) || 0;
+      const orders = (await cacheService.zscore('timeseries:hourly_orders', hourKey)) || 0;
 
       trend.unshift({
         hour: hourKey,

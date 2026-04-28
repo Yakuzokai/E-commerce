@@ -240,7 +240,7 @@ if (require.main === module) {
       await closePool();
       process.exit(0);
     })
-    .catch(async (error) => {
+    .catch(async (_error) => {
       await closePool();
       process.exit(1);
     });

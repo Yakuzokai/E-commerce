@@ -1,5 +1,6 @@
 // Home Page
 
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, Zap, Shield, Truck, CreditCard, Star } from 'lucide-react';
@@ -19,6 +20,9 @@ const mockProducts: any[] = [
 ];
 
 export default function HomePage() {
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterMessage, setNewsletterMessage] = useState<string | null>(null);
+
   const { data: trendingProducts } = useQuery({
     queryKey: ['trending-products'],
     queryFn: () => productApi.getTrending(8),
@@ -26,6 +30,19 @@ export default function HomePage() {
   });
 
   const products = trendingProducts?.data || mockProducts;
+
+  const handleNewsletterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = newsletterEmail.trim();
+
+    if (!email || !email.includes('@')) {
+      setNewsletterMessage('Please enter a valid email address.');
+      return;
+    }
+
+    setNewsletterMessage('You are subscribed. Watch your inbox for new deals.');
+    setNewsletterEmail('');
+  };
 
   return (
     <div className="animate-fade-in">
@@ -184,10 +201,12 @@ export default function HomePage() {
           <p className="text-secondary-100 mb-8 max-w-md mx-auto">
             Subscribe to our newsletter for exclusive deals, new arrivals, and more
           </p>
-          <form className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+          <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
             <input
               type="email"
               placeholder="Enter your email"
+              value={newsletterEmail}
+              onChange={(e) => setNewsletterEmail(e.target.value)}
               className="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-secondary-400"
             />
             <button
@@ -197,6 +216,9 @@ export default function HomePage() {
               Subscribe
             </button>
           </form>
+          {newsletterMessage && (
+            <p className="mt-4 text-sm font-medium text-secondary-100">{newsletterMessage}</p>
+          )}
         </div>
       </section>
     </div>
@@ -205,6 +227,8 @@ export default function HomePage() {
 
 // Product Card Component
 function ProductCard({ product }: { product: any }) {
+  const [isWishlisted, setIsWishlisted] = useState(false);
+
   const discount = product.variants?.[0]?.originalPrice
     ? Math.round((1 - product.variants[0].price / product.variants[0].originalPrice) * 100)
     : 0;
@@ -226,8 +250,17 @@ function ProductCard({ product }: { product: any }) {
           </span>
         )}
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button className="p-2 bg-white rounded-full shadow hover:bg-gray-100">
-            ❤️
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsWishlisted((prev) => !prev);
+            }}
+            className="p-2 bg-white rounded-full shadow hover:bg-gray-100"
+            aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+          >
+            {isWishlisted ? '❤️' : '🤍'}
           </button>
         </div>
       </div>
@@ -237,21 +270,21 @@ function ProductCard({ product }: { product: any }) {
         </h3>
         <div className="flex items-center gap-1 mb-2">
           <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-          <span className="text-sm text-gray-600">{product.ratingAvg.toFixed(1)}</span>
-          <span className="text-sm text-gray-400">({product.ratingCount})</span>
+          <span className="text-sm text-gray-600">{(product.ratingAvg || 0).toFixed(1)}</span>
+          <span className="text-sm text-gray-400">({product.ratingCount || 0})</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-lg font-bold text-primary-600">
-            ${product.variants?.[0]?.price.toFixed(2) || '0.00'}
+            ${(product.variants?.[0]?.price || 0).toFixed(2)}
           </span>
           {product.variants?.[0]?.originalPrice && (
             <span className="text-sm text-gray-400 line-through">
-              ${product.variants[0].originalPrice.toFixed(2)}
+              ${(product.variants[0].originalPrice || 0).toFixed(2)}
             </span>
           )}
         </div>
         <div className="mt-2 text-sm text-gray-500">
-          {product.soldCount.toLocaleString()} sold
+          {(product.soldCount || 0).toLocaleString()} sold
         </div>
       </div>
     </Link>

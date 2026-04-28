@@ -4,7 +4,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import { query, closePool, transaction } from './index';
+import { closePool, transaction } from './index';
 import { logger } from '../utils/logger';
 
 async function seed() {

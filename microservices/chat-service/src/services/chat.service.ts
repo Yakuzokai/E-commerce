@@ -236,7 +236,7 @@ export async function sendMessage(
   });
 
   logger.info('Message sent', { messageId: id, conversationId: data.conversationId });
-  return message;
+  return message!;
 }
 
 /**

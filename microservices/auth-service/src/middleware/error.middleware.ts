@@ -42,6 +42,7 @@ export function errorHandler(
   // Log the error
   logger.error('Request error', {
     error: err.message,
+    fullError: err,
     stack: err.stack,
     path: req.path,
     method: req.method,

@@ -6,6 +6,7 @@ import type { Product, ProductDetail, Cart, Order, AuthResponse, User, Paginated
 const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || 'http://localhost:3001/api/v1';
 const PRODUCT_API_URL = import.meta.env.VITE_PRODUCT_API_URL || 'http://localhost:3003/api/v1';
 const CART_API_URL = import.meta.env.VITE_CART_API_URL || 'http://localhost:3006/api';
+const USER_API_URL = import.meta.env.VITE_USER_API_URL || 'http://localhost:3008/api';
 const ORDER_API_URL = import.meta.env.VITE_ORDER_API_URL || 'http://localhost:3004/api';
 
 // Create axios instances for different services
@@ -23,6 +24,12 @@ const productInstance: AxiosInstance = axios.create({
 
 const cartInstance: AxiosInstance = axios.create({
   baseURL: CART_API_URL,
+  timeout: 30000,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+const userInstance: AxiosInstance = axios.create({
+  baseURL: USER_API_URL,
   timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 });
@@ -50,7 +57,63 @@ const addAuthInterceptor = (instance: AxiosInstance) => {
 addAuthInterceptor(authInstance);
 addAuthInterceptor(productInstance);
 addAuthInterceptor(cartInstance);
+addAuthInterceptor(userInstance);
 addAuthInterceptor(orderInstance);
+
+// Address Types
+export interface Address {
+  id: string;
+  userId: string;
+  type: 'home' | 'work' | 'other';
+  label: string;
+  recipientName: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+export interface CreateAddressRequest {
+  type: 'home' | 'work' | 'other';
+  label: string;
+  recipientName: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  isDefault?: boolean;
+}
+
+// User API
+export const userApi = {
+  getAddresses: async (userId: string): Promise<Address[]> => {
+    const response = await userInstance.get(`/users/${userId}/addresses`);
+    return response.data;
+  },
+  addAddress: async (userId: string, data: CreateAddressRequest): Promise<Address> => {
+    const response = await userInstance.post(`/users/${userId}/addresses`, data);
+    return response.data;
+  },
+  updateAddress: async (userId: string, addressId: string, data: Partial<CreateAddressRequest>): Promise<Address> => {
+    const response = await userInstance.patch(`/users/${userId}/addresses/${addressId}`, data);
+    return response.data;
+  },
+  deleteAddress: async (userId: string, addressId: string): Promise<void> => {
+    await userInstance.delete(`/users/${userId}/addresses/${addressId}`);
+  },
+  setDefaultAddress: async (userId: string, addressId: string): Promise<Address> => {
+    const response = await userInstance.post(`/users/${userId}/addresses/${addressId}/default`);
+    return response.data;
+  },
+};
 
 // Auth API
 export const authApi = {

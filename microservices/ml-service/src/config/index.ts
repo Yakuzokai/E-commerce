@@ -6,16 +6,16 @@ export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
 
   database: {
-    url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/ml_service',
+    url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5433/ml_service',
   },
 
   redis: {
-    host: process.env.REDIS_HOST || 'localhost',
+    host: process.env.REDIS_HOST || '127.0.0.1',
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
   },
 
   kafka: {
-    brokers: (process.env.KAFKA_BROKERS || 'localhost:9092').split(','),
+    brokers: (process.env.KAFKA_BROKERS || '127.0.0.1:9092').split(','),
     clientId: 'ml-service',
     groupId: 'ml-service-group',
   },

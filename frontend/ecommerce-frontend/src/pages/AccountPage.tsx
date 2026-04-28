@@ -1,9 +1,14 @@
 import { useAuthStore } from '@/stores';
 import { User, Package, Heart, MapPin, CreditCard, Bell, Shield, ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function AccountPage() {
+  const navigate = useNavigate();
   const { user } = useAuthStore();
+
+  const handleEditProfile = () => {
+    navigate('/account/profile');
+  };
 
   const menuItems = [
     { icon: User, label: 'Personal Info', description: 'Update your name and contact details', path: '/account/profile' },
@@ -27,13 +32,21 @@ export default function AccountPage() {
               <div className="w-24 h-24 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-3xl font-bold">
                 {user?.firstName?.charAt(0) || 'U'}
               </div>
-              <button className="absolute bottom-0 right-0 p-2 bg-white rounded-full shadow-md border border-gray-100 text-gray-500 hover:text-primary-600 transition-colors">
+              <button
+                type="button"
+                onClick={handleEditProfile}
+                className="absolute bottom-0 right-0 p-2 bg-white rounded-full shadow-md border border-gray-100 text-gray-500 hover:text-primary-600 transition-colors"
+              >
                 <User className="w-4 h-4" />
               </button>
             </div>
             <h2 className="text-xl font-bold text-gray-900">{user?.firstName} {user?.lastName}</h2>
             <p className="text-sm text-gray-500 mb-6">{user?.email}</p>
-            <button className="w-full py-2.5 bg-primary-50 text-primary-600 font-semibold rounded-xl hover:bg-primary-100 transition-colors">
+            <button
+              type="button"
+              onClick={handleEditProfile}
+              className="w-full py-2.5 bg-primary-50 text-primary-600 font-semibold rounded-xl hover:bg-primary-100 transition-colors"
+            >
               Edit Profile
             </button>
           </div>

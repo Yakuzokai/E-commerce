@@ -7,7 +7,7 @@ export const config = {
 
   db: {
     host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432'),
+    port: parseInt(process.env.DB_PORT || '5433'),
     database: process.env.DB_NAME || 'notification_db',
     user: process.env.DB_USER || 'shophub',
     password: process.env.DB_PASSWORD || 'password',

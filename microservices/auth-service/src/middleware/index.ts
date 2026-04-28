@@ -216,7 +216,7 @@ export async function authenticateAPIKey(
   }
 
   // Attach API key info to request
-  req.user = payload;
+  req.user = payload as unknown as JWTPayload;
   req.userId = payload.serviceId;
   req.userRole = 'service';
 

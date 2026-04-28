@@ -77,8 +77,9 @@ export async function getProductReviews(
   }
 
   const [reviews, countResult] = await Promise.all([
-    query<Review>(
-      `SELECT r.*, sr.seller_name as response_seller_name, sr.content as response_content
+    query<any>(
+      `SELECT r.id, r.product_id, r.user_id, r.order_id, r.rating, r.title, r.content, r.images, r.status, r.helpful_count, r.not_helpful_count, r.is_verified_purchase, r.created_at, r.updated_at,
+              sr.id as sr_id, sr.review_id as sr_review_id, sr.seller_id as sr_seller_id, sr.seller_name as sr_seller_name, sr.content as sr_content, sr.created_at as sr_created_at, sr.updated_at as sr_updated_at
        FROM reviews r
        LEFT JOIN seller_responses sr ON r.id = sr.review_id
        WHERE r.product_id = $1 AND r.status = 'approved'
@@ -93,11 +94,29 @@ export async function getProductReviews(
   ]);
 
   // Format reviews with seller responses
-  const formattedReviews = reviews.map(r => ({
-    ...r,
-    responseFromSeller: r.response_content ? {
-      sellerName: r.response_seller_name,
-      content: r.response_content,
+  const formattedReviews: Review[] = reviews.map(r => ({
+    id: r.id,
+    productId: r.product_id,
+    userId: r.user_id,
+    orderId: r.order_id,
+    rating: r.rating,
+    title: r.title,
+    content: r.content,
+    images: r.images,
+    status: r.status,
+    helpfulCount: r.helpful_count,
+    notHelpfulCount: r.not_helpful_count,
+    isVerifiedPurchase: r.is_verified_purchase,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    responseFromSeller: r.sr_id ? {
+      id: r.sr_id,
+      reviewId: r.sr_review_id,
+      sellerId: r.sr_seller_id,
+      sellerName: r.sr_seller_name,
+      content: r.sr_content,
+      createdAt: r.sr_created_at,
+      updatedAt: r.sr_updated_at,
     } : undefined,
   }));
 
@@ -250,7 +269,7 @@ export async function addSellerResponse(
   // Delete existing response if any
   await query('DELETE FROM seller_responses WHERE review_id = $1', [reviewId]);
 
-  const response = await queryOne(
+  const response = await queryOne<any>(
     `INSERT INTO seller_responses (review_id, seller_id, seller_name, content)
      VALUES ($1, $2, $3, $4)
      RETURNING *`,
@@ -258,7 +277,15 @@ export async function addSellerResponse(
   );
 
   logger.info('Seller response added', { reviewId, sellerId });
-  return response;
+  return response ? {
+    id: response.id,
+    reviewId: response.review_id,
+    sellerId: response.seller_id,
+    sellerName: response.seller_name,
+    content: response.content,
+    createdAt: response.created_at,
+    updatedAt: response.updated_at,
+  } : null;
 }
 
 /**

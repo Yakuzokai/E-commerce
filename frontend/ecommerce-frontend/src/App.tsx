@@ -26,6 +26,8 @@ import OrdersPage from '@/pages/OrdersPage';
 import WishlistPage from '@/pages/WishlistPage';
 import CheckoutPage from '@/pages/CheckoutPage';
 import FlashSalesPage from '@/pages/FlashSalesPage';
+import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
+import InfoPage from '@/pages/InfoPage';
 
 // Create query client
 const queryClient = new QueryClient({
@@ -55,7 +57,23 @@ function App() {
               <Route path="/cart" element={<CartPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
+
+              {/* Informational Routes */}
+              <Route path="/seller" element={<InfoPage />} />
+              <Route path="/support" element={<InfoPage />} />
+              <Route path="/about" element={<InfoPage />} />
+              <Route path="/contact" element={<InfoPage />} />
+              <Route path="/blog" element={<InfoPage />} />
+              <Route path="/faq" element={<InfoPage />} />
+              <Route path="/careers" element={<InfoPage />} />
+              <Route path="/help" element={<InfoPage />} />
+              <Route path="/shipping" element={<InfoPage />} />
+              <Route path="/returns" element={<InfoPage />} />
+              <Route path="/track-order" element={<InfoPage />} />
+              <Route path="/privacy" element={<InfoPage />} />
+              <Route path="/terms" element={<InfoPage />} />
               
               {/* Account Routes */}
               <Route path="/account" element={<AccountPage />} />

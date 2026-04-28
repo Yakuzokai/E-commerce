@@ -236,7 +236,7 @@ export async function listProducts(
   let sortField = 'created_at';
   let order = filters.sortOrder?.toUpperCase() || 'DESC';
 
-  switch (filters.sortBy) {
+  switch (filters.sortBy as string) {
     case 'popular':
       sortField = '(sold_count * 2 + view_count)';
       break;

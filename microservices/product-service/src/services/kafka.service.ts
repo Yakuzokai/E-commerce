@@ -34,7 +34,7 @@ export async function initProducer(): Promise<void> {
   }
 }
 
-export async function publishEvent<T = any>(topic: string, event: any): Promise<void> {
+export async function publishEvent(topic: string, event: any): Promise<void> {
   if (!isConnected) return;
 
   try {

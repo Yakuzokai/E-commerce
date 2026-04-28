@@ -1,14 +1,49 @@
 // Cart Page
 
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Ticket } from 'lucide-react';
 import { useCartStore } from '@/stores';
 
 export default function CartPage() {
   const { items, totalItems, subtotal, updateQuantity, removeItem, clearCart } = useCartStore();
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [couponMessage, setCouponMessage] = useState<string | null>(null);
 
   const shippingFee = subtotal >= 50 ? 0 : 9.99;
-  const total = subtotal + shippingFee;
+  const total = Math.max(0, subtotal + shippingFee - discountAmount);
+
+  useEffect(() => {
+    if (!appliedCoupon) {
+      setDiscountAmount(0);
+      return;
+    }
+
+    if (appliedCoupon === 'SAVE10') {
+      setDiscountAmount(Number((subtotal * 0.1).toFixed(2)));
+    }
+  }, [appliedCoupon, subtotal]);
+
+  const handleApplyCoupon = () => {
+    const normalized = couponCode.trim().toUpperCase();
+    if (!normalized) {
+      setCouponMessage('Please enter a coupon code.');
+      return;
+    }
+
+    if (normalized === 'SAVE10') {
+      setAppliedCoupon(normalized);
+      setDiscountAmount(Number((subtotal * 0.1).toFixed(2)));
+      setCouponMessage('Coupon SAVE10 applied. You get 10% off your subtotal.');
+      return;
+    }
+
+    setAppliedCoupon(null);
+    setDiscountAmount(0);
+    setCouponMessage('Coupon not recognized. Try SAVE10.');
+  };
 
   if (items.length === 0) {
     return (
@@ -76,7 +111,7 @@ export default function CartPage() {
                       {/* Price */}
                       <div className="col-span-1 md:col-span-2 text-center">
                         <span className="md:hidden text-sm text-gray-500">Price: </span>
-                        <span className="font-medium">${item.variant?.price.toFixed(2) || '0.00'}</span>
+                        <span className="font-medium">${Number(item.variant?.price || 0).toFixed(2)}</span>
                       </div>
 
                       {/* Quantity */}
@@ -153,34 +188,51 @@ export default function CartPage() {
                   <input
                     type="text"
                     placeholder="Enter coupon code"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value)}
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
-                  <button className="px-4 py-2 border border-primary-500 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors">
-                    <Ticket className="w-5 h-5" />
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    className="px-4 py-2 border border-primary-500 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors flex items-center gap-2"
+                  >
+                    <Ticket className="w-5 h-5" /> Apply
                   </button>
                 </div>
+                {couponMessage && (
+                  <p className={`mt-2 text-xs ${appliedCoupon ? 'text-green-600' : 'text-amber-600'}`}>
+                    {couponMessage}
+                  </p>
+                )}
               </div>
 
               {/* Summary */}
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal ({totalItems} items)</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>${Number(subtotal).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
                   <span className={shippingFee === 0 ? 'text-green-600' : ''}>
-                    {shippingFee === 0 ? 'FREE' : `$${shippingFee.toFixed(2)}`}
+                    {shippingFee === 0 ? 'FREE' : `$${Number(shippingFee).toFixed(2)}`}
                   </span>
                 </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Coupon Discount{appliedCoupon ? ` (${appliedCoupon})` : ''}</span>
+                    <span>- ${Number(discountAmount).toFixed(2)}</span>
+                  </div>
+                )}
                 {shippingFee > 0 && (
                   <p className="text-sm text-gray-500">
-                    Add ${(50 - subtotal).toFixed(2)} more for free shipping!
+                    Add ${(50 - Number(subtotal)).toFixed(2)} more for free shipping!
                   </p>
                 )}
                 <div className="border-t pt-4 flex justify-between text-lg font-bold">
                   <span>Total</span>
-                  <span className="text-primary-600">${total.toFixed(2)}</span>
+                  <span className="text-primary-600">${Number(total).toFixed(2)}</span>
                 </div>
               </div>
 

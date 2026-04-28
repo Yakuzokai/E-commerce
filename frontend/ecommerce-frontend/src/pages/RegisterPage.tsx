@@ -57,17 +57,24 @@ export default function RegisterPage() {
     setError('');
 
     try {
+      console.log('Submitting registration:', {
+        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+      });
       const response = await authApi.register({
         email: data.email,
         password: data.password,
         firstName: data.firstName,
         lastName: data.lastName,
       });
+      console.log('Registration response:', response);
       localStorage.setItem('accessToken', response.tokens.accessToken);
       localStorage.setItem('refreshToken', response.tokens.refreshToken);
       setUser(response.user);
       navigate('/');
     } catch (err: any) {
+      console.error('Registration error detail:', err);
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);

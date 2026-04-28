@@ -2,7 +2,7 @@
  * Database Configuration and Connection Pool
  */
 
-import { Pool, PoolClient, QueryResult } from 'pg';
+import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg';
 import { appConfig, isProduction } from '../config';
 import { logger } from '../utils/logger';
 
@@ -22,7 +22,7 @@ pool.on('error', (err) => {
   logger.error('Unexpected database pool error', { error: err.message });
 });
 
-export async function query<T = any>(text: string, params?: any[]): Promise<QueryResult<T>> {
+export async function query<T extends QueryResultRow = any>(text: string, params?: any[]): Promise<QueryResult<T>> {
   const start = Date.now();
   try {
     const result = await pool.query<T>(text, params);

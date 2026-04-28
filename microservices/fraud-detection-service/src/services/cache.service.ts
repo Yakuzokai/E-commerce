@@ -69,7 +69,8 @@ export class CacheService {
   }
 
   async zincrby(key: string, increment: number, member: string): Promise<number> {
-    return this.redis.zincrby(this.prefix + key, increment, member);
+    const result = await this.redis.zincrby(this.prefix + key, increment, member);
+    return typeof result === 'string' ? parseFloat(result) : result;
   }
 
   async zscore(key: string, member: string): Promise<number | null> {

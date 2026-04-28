@@ -35,7 +35,8 @@ export class CacheService {
   }
 
   async zincrby(key: string, increment: number, member: string): Promise<number> {
-    return this.redis.zincrby(this.prefix + key, increment, member);
+    const result = await this.redis.zincrby(this.prefix + key, increment, member);
+    return typeof result === 'string' ? parseFloat(result) : result;
   }
 
   async zrevrange(key: string, start: number, stop: number): Promise<string[]> {
@@ -62,6 +63,32 @@ export class CacheService {
 
   async hincrby(key: string, field: string, increment: number): Promise<number> {
     return this.redis.hincrby(this.prefix + key, field, increment);
+  }
+
+  async incrbyfloat(key: string, increment: number): Promise<number> {
+    const result = await this.redis.incrbyfloat(this.prefix + key, increment);
+    return typeof result === 'string' ? parseFloat(result) : result;
+  }
+
+  async sadd(key: string, ...members: string[]): Promise<number> {
+    return this.redis.sadd(this.prefix + key, ...members);
+  }
+
+  async expire(key: string, ttl: number): Promise<number> {
+    return this.redis.expire(this.prefix + key, ttl);
+  }
+
+  async smembers(key: string): Promise<string[]> {
+    return this.redis.smembers(this.prefix + key);
+  }
+
+  async zscore(key: string, member: string): Promise<number | null> {
+    const result = await this.redis.zscore(this.prefix + key, member);
+    return result === null ? null : (typeof result === 'string' ? parseFloat(result) : result);
+  }
+
+  async zremrangebyscore(key: string, min: string, max: number): Promise<number> {
+    return this.redis.zremrangebyscore(this.prefix + key, min, max);
   }
 }
 

@@ -127,18 +127,18 @@ async function startServer() {
     logger.info('Running database migrations...');
     await runMigrations();
 
-    // Initialize Kafka producer (non-blocking)
-    initProducer().catch((err) => {
-      logger.warn('Kafka initialization failed (non-critical)', {
-        error: err.message,
-      });
-    });
-
     // Start HTTP server
     app.listen(appConfig.PORT, () => {
       logger.info(`Auth Service listening on port ${appConfig.PORT}`);
       logger.info(`Environment: ${appConfig.NODE_ENV}`);
       logger.info(`Health check: http://localhost:${appConfig.PORT}/health`);
+
+      // Initialize Kafka producer (non-blocking, after server is up)
+      initProducer().catch((err) => {
+        logger.warn('Kafka initialization failed (non-critical)', {
+          error: err.message,
+        });
+      });
     });
   } catch (error) {
     logger.error('Failed to start server', {

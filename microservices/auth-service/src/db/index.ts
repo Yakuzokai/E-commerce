@@ -3,7 +3,7 @@
  * PostgreSQL connection using pg library
  */
 
-import { Pool, PoolClient, QueryResult } from 'pg';
+import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg';
 import { appConfig, isProduction } from '../config';
 import { logger } from '../utils/logger';
 
@@ -28,7 +28,7 @@ pool.on('error', (err) => {
 /**
  * Execute a query with parameters
  */
-export async function query<T = any>(
+export async function query<T extends QueryResultRow = any>(
   text: string,
   params?: any[]
 ): Promise<QueryResult<T>> {

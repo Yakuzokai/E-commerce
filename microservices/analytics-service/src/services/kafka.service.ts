@@ -6,6 +6,8 @@ export class KafkaService {
   private kafka: Kafka;
   private consumer: Consumer;
   private isConnected = false;
+  private isRunning = false;
+  private subscriptions: Map<string, (message: any) => Promise<void>> = new Map();
 
   constructor() {
     this.kafka = new Kafka({
@@ -36,6 +38,7 @@ export class KafkaService {
   async disconnect(): Promise<void> {
     await this.consumer.disconnect();
     this.isConnected = false;
+    this.isRunning = false;
   }
 
   async subscribe(
@@ -43,24 +46,45 @@ export class KafkaService {
     handler: (message: any) => Promise<void>
   ): Promise<void> {
     if (!this.isConnected) await this.connect();
+    if (this.isRunning) {
+      throw new Error('Cannot subscribe to a topic after the consumer has started');
+    }
 
+    // Store handler for later use
+    this.subscriptions.set(topic, handler);
+
+    // Subscribe to topic
     await this.consumer.subscribe({ topic, fromBeginning: false });
-
-    await this.consumer.run({
-      eachMessage: async ({ topic, partition, message }) => {
-        try {
-          const value = message.value?.toString();
-          if (value) {
-            const data = JSON.parse(value);
-            await handler(data);
-          }
-        } catch (error) {
-          logger.error(`Error processing message from ${topic}:`, error);
-        }
-      },
-    });
-
     logger.info(`Subscribed to topic: ${topic}`);
+
+  }
+
+  async start(): Promise<void> {
+    if (this.isRunning) return;
+    if (!this.isConnected) await this.connect();
+
+    this.isRunning = true;
+    try {
+      await this.consumer.run({
+        eachMessage: async ({ topic, partition, message }) => {
+          try {
+            const value = message.value?.toString();
+            if (value) {
+              const data = JSON.parse(value);
+              const handler = this.subscriptions.get(topic);
+              if (handler) {
+                await handler(data);
+              }
+            }
+          } catch (error) {
+            logger.error(`Error processing message from ${topic}:`, error);
+          }
+        },
+      });
+    } catch (error) {
+      this.isRunning = false;
+      throw error;
+    }
   }
 }
 

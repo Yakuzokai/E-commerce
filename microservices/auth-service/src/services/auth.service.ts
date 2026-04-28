@@ -43,6 +43,21 @@ import { query } from '../db';
 import { logger } from '../utils/logger';
 
 /**
+ * Auth Error class
+ */
+export class AuthError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public statusCode: number
+  ) {
+    super(message);
+    this.name = 'AuthError';
+    Object.setPrototypeOf(this, AuthError.prototype);
+  }
+}
+
+/**
  * Check for too many failed login attempts
  */
 async function isRateLimited(identifier: string): Promise<boolean> {
@@ -257,15 +272,14 @@ export async function refreshTokens(
   }
 
   // Delete old session and create new one
-  const { refreshToken: newRefreshToken } = await createSession({
-    userId: user.id,
-    ipAddress: validation.session.ipAddress ?? undefined,
-    userAgent: validation.session.userAgent ?? undefined,
-  });
+  const result = await refreshSession(refreshToken);
+  if (!result) {
+    throw new AuthError('Invalid or expired refresh token', 'INVALID_TOKEN', 401);
+  }
 
   return {
-    accessToken: generateAccessToken(user, validation.session.id),
-    refreshToken: newRefreshToken,
+    accessToken: generateAccessToken(user, result.session.id),
+    refreshToken: result.newRefreshToken,
     expiresIn: 900, // 15 minutes in seconds
     tokenType: 'Bearer',
   };
@@ -341,27 +355,13 @@ export async function getCurrentUser(
  * Generate tokens for a user
  */
 function generateTokens(user: User, refreshToken: string): TokenResponse {
-  const sessionId = uuidv4(); // This should come from the session creation
+  const sessionId = uuidv4();
   return {
     accessToken: generateAccessToken(user, sessionId),
     refreshToken,
-    expiresIn: 900, // 15 minutes in seconds
+    expiresIn: 900,
     tokenType: 'Bearer',
   };
-}
-
-/**
- * Auth Error class
- */
-export class AuthError extends Error {
-  constructor(
-    message: string,
-    public code: string,
-    public statusCode: number
-  ) {
-    super(message);
-    this.name = 'AuthError';
-  }
 }
 
 export default {

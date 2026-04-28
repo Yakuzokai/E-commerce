@@ -49,4 +49,3 @@ echo All 14 services and Frontend are starting!
 echo 
 echo Important: Some services may take a minute to initialize.
 echo ---------------------------------------------------
-pause

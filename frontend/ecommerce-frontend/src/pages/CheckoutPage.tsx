@@ -1,17 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { CreditCard, Truck, ShieldCheck, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
+import { CreditCard, Truck, ShieldCheck, ArrowLeft, Loader2, CheckCircle2, MapPin } from 'lucide-react';
 import { useCartStore, useAuthStore } from '@/stores';
-import { orderApi } from '@/lib/api';
+import { orderApi, userApi, Address } from '@/lib/api';
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
-  const { cart, subtotal, totalItems, clearCart } = useCartStore();
+  const { items: cart, subtotal, totalItems, clearCart } = useCartStore();
   const { user, isAuthenticated } = useAuthStore();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Saved Addresses
+  const [savedAddresses, setAddresses] = useState<Address[]>([]);
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -19,9 +23,47 @@ export default function CheckoutPage() {
     lastName: user?.lastName || '',
     address: '',
     city: '',
+    state: '',
     postalCode: '',
     paymentMethod: 'credit_card'
   });
+
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      loadAddresses();
+    }
+  }, [isAuthenticated, user?.id]);
+
+  const loadAddresses = async () => {
+    try {
+      setIsLoadingAddresses(true);
+      const data = await userApi.getAddresses(user!.id);
+      setAddresses(data);
+      
+      // Auto-fill if there's a default address
+      const defaultAddr = data.find(a => a.isDefault) || data[0];
+      if (defaultAddr) {
+        selectAddress(defaultAddr);
+      }
+    } catch (err) {
+      console.error('Failed to load addresses', err);
+    } finally {
+      setIsLoadingAddresses(false);
+    }
+  };
+
+  const selectAddress = (addr: Address) => {
+    const [first, ...rest] = addr.recipientName.split(' ');
+    setFormData(prev => ({
+      ...prev,
+      firstName: first || '',
+      lastName: rest.join(' ') || '',
+      address: addr.addressLine1 + (addr.addressLine2 ? `, ${addr.addressLine2}` : ''),
+      city: addr.city,
+      state: addr.state,
+      postalCode: addr.postalCode
+    }));
+  };
 
   const shippingFee = subtotal >= 50 ? 0 : 9.99;
   const total = subtotal + shippingFee;
@@ -56,7 +98,7 @@ export default function CheckoutPage() {
           quantity: item.quantity,
           price: item.variant.price,
           name: item.product.name,
-          sellerId: item.product.sellerId || item.product.seller_id
+          sellerId: item.product.sellerId || (item.product as any).seller_id
         })),
         shippingAddress: {
           street: formData.address,
@@ -136,12 +178,41 @@ export default function CheckoutPage() {
 
             {/* Shipping Info */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-primary-50 rounded-lg text-primary-600">
-                  <Truck className="w-6 h-6" />
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary-50 rounded-lg text-primary-600">
+                    <Truck className="w-6 h-6" />
+                  </div>
+                  <h2 className="text-xl font-bold">Shipping Information</h2>
                 </div>
-                <h2 className="text-xl font-bold">Shipping Information</h2>
+                {savedAddresses.length > 0 && (
+                  <span className="text-xs font-bold text-gray-400 uppercase">Saved Addresses Found</span>
+                )}
               </div>
+
+              {/* Saved Addresses Quick Select */}
+              {savedAddresses.length > 0 && (
+                <div className="mb-8 overflow-x-auto pb-2 flex gap-3">
+                  {savedAddresses.map((addr) => (
+                    <button
+                      key={addr.id}
+                      type="button"
+                      onClick={() => selectAddress(addr)}
+                      className="shrink-0 w-48 p-3 text-left border-2 border-gray-100 rounded-xl hover:border-primary-300 hover:bg-primary-50 transition-all group"
+                    >
+                      <div className="flex items-center gap-1.5 mb-1 text-primary-600">
+                        <MapPin className="w-3.5 h-3.5" />
+                        <span className="text-xs font-bold uppercase">{addr.label}</span>
+                        {addr.isDefault && <span className="ml-auto w-1.5 h-1.5 bg-primary-500 rounded-full"></span>}
+                      </div>
+                      <p className="text-sm font-bold text-gray-900 truncate">{addr.recipientName}</p>
+                      <p className="text-xs text-gray-500 truncate">{addr.addressLine1}</p>
+                      <p className="text-xs text-gray-500">{addr.city}, {addr.state}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input 
                   type="text" 
@@ -242,15 +313,15 @@ export default function CheckoutPage() {
               <div className="space-y-4 mb-6 text-gray-600">
                 <div className="flex justify-between">
                   <span>Subtotal ({totalItems} items)</span>
-                  <span className="font-medium text-gray-900">${subtotal.toFixed(2)}</span>
+                  <span className="font-medium text-gray-900">${Number(subtotal).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Shipping</span>
-                  <span className="font-medium text-gray-900">{shippingFee === 0 ? 'FREE' : `$${shippingFee.toFixed(2)}`}</span>
+                  <span className="font-medium text-gray-900">{shippingFee === 0 ? 'FREE' : `$${Number(shippingFee).toFixed(2)}`}</span>
                 </div>
                 <div className="border-t pt-4 flex justify-between text-xl font-bold text-gray-900">
                   <span>Total</span>
-                  <span className="text-primary-600">${total.toFixed(2)}</span>
+                  <span className="text-primary-600">${Number(total).toFixed(2)}</span>
                 </div>
               </div>
               
@@ -272,7 +343,9 @@ export default function CheckoutPage() {
               </button>
               
               <p className="mt-4 text-xs text-center text-gray-400">
-                By placing your order, you agree to our <span className="underline cursor-pointer">Terms of Use</span> and <span className="underline cursor-pointer">Privacy Policy</span>.
+                By placing your order, you agree to our{' '}
+                <Link to="/terms" className="underline hover:text-primary-600">Terms of Use</Link>{' '}
+                and <Link to="/privacy" className="underline hover:text-primary-600">Privacy Policy</Link>.
               </p>
             </div>
           </div>

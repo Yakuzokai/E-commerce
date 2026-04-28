@@ -6,16 +6,16 @@ export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
 
   database: {
-    url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/fraud_detection',
+    url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5433/fraud_detection',
   },
 
   redis: {
-    host: process.env.REDIS_HOST || 'localhost',
+    host: process.env.REDIS_HOST || '127.0.0.1',
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
   },
 
   kafka: {
-    brokers: (process.env.KAFKA_BROKERS || 'localhost:9092').split(','),
+    brokers: (process.env.KAFKA_BROKERS || '127.0.0.1:9092').split(','),
     clientId: 'fraud-detection-service',
     groupId: 'fraud-detection-group',
   },

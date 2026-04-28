@@ -26,8 +26,10 @@ export class CollaborativeFilteringService {
       logger.info('Initialized new collaborative filtering model');
     }
 
-    await kafkaService.subscribe('user.behavior', async (behavior: UserBehavior) => {
-      await this.processUserBehavior(behavior);
+    await kafkaService.subscribe('user.behavior', async (behavior: any) => {
+      if (behavior && typeof behavior === 'object' && 'userId' in behavior) {
+        await this.processUserBehavior(behavior);
+      }
     });
   }
 

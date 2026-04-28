@@ -86,7 +86,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     )}
                     <div className="flex items-center justify-between mt-2">
                       <span className="font-semibold text-primary-600">
-                        ${((item.variant?.price || 0).toFixed(2))}
+                        ${Number(item.variant?.price || 0).toFixed(2)}
                       </span>
 
                       {/* Quantity Controls */}
@@ -125,7 +125,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
           <div className="border-t p-4 space-y-4">
             <div className="flex justify-between text-lg font-semibold">
               <span>Subtotal</span>
-              <span className="text-primary-600">${subtotal.toFixed(2)}</span>
+              <span className="text-primary-600">${Number(subtotal).toFixed(2)}</span>
             </div>
             <p className="text-sm text-gray-500">
               Shipping and taxes calculated at checkout

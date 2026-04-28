@@ -15,7 +15,7 @@ const envSchema = z.object({
   PORT: z.string().default('3001'),
 
   // Database
-  DATABASE_URL: z.string().default('postgresql://ecommerce:postgres_secret_password@localhost:5432/ecommerce_db'),
+  DATABASE_URL: z.string().default('postgresql://ecommerce:postgres_secret_password@localhost:5433/ecommerce_db'),
 
   // Redis
   REDIS_URL: z.string().default('redis://localhost:6379'),

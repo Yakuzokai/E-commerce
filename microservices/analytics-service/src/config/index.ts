@@ -6,7 +6,7 @@ export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
 
   database: {
-    url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/analytics',
+    url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5433/analytics',
   },
 
   redis: {

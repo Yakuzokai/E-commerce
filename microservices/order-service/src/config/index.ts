@@ -10,7 +10,7 @@ dotenv.config();
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.string().default('3004'),
-  DATABASE_URL: z.string().default('postgresql://ecommerce:postgres_secret_password@localhost:5432/ecommerce_db'),
+  DATABASE_URL: z.string().default('postgresql://ecommerce:postgres_secret_password@localhost:5433/ecommerce_db'),
   REDIS_URL: z.string().default('redis://localhost:6379'),
   KAFKA_BROKERS: z.string().default('localhost:9092'),
   KAFKA_CLIENT_ID: z.string().default('order-service'),

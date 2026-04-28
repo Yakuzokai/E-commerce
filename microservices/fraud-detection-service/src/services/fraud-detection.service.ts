@@ -59,10 +59,10 @@ export class FraudDetectionService {
     riskFactors.push(historyScore);
 
     // Calculate overall risk score
-    const totalWeight = Object.values(config.fraud.riskScoreWeights).reduce((a, b) => a + b, 0);
-    const riskScore = riskFactors.reduce((total, factor) => {
+    const totalWeight = Object.values(config.fraud.riskScoreWeights).reduce((a: number, b: any) => a + (Number(b) || 0), 0);
+    const riskScore = riskFactors.reduce((total: number, factor: any) => {
       if (factor.triggered) {
-        return total + (factor.score * factor.weight / totalWeight);
+        return total + (factor.score * factor.weight / (totalWeight || 1));
       }
       return total;
     }, 0);

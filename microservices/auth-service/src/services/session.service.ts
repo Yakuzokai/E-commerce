@@ -152,7 +152,7 @@ export async function refreshSession(
     deviceInfo: validation.session.deviceInfo ?? undefined,
   });
 
-  return result;
+  return result ? { session: result.session, newRefreshToken: result.refreshToken } : null;
 }
 
 /**
