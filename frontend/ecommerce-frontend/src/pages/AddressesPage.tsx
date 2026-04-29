@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { MapPin, Plus, ArrowLeft, Trash2, Home, Briefcase, Map as MapIcon, Loader2, X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { MapPin, Plus, ArrowLeft, Trash2, Home, Briefcase, Map as MapIcon, Loader2, X, Navigation, Crosshair } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { userApi, Address, CreateAddressRequest } from '@/lib/api';
 import { useAuthStore } from '@/stores';
@@ -15,6 +15,13 @@ export default function AddressesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Map state
+  const [showMap, setShowMap] = useState(false);
+  const [mapCenter, setMapCenter] = useState({ lat: 40.7128, lng: -74.006 });
+  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [isMapLoading, setIsMapLoading] = useState(false);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   // Form State
   const [formData, setFormData] = useState<CreateAddressRequest>({
@@ -92,12 +99,82 @@ export default function AddressesPage() {
     const { name, value, type } = e.target as HTMLInputElement;
     const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
     setFormData(prev => ({ ...prev, [name]: val }));
-    
-    // Auto-update label if type changes
+
     if (name === 'type') {
       const labels: Record<string, string> = { home: 'Home', work: 'Work', other: 'Other' };
       setFormData(prev => ({ ...prev, label: labels[value as string] || value as string }));
     }
+  };
+
+  const reverseGeocode = async (lat: number, lng: number) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`
+      );
+      const data = await response.json();
+      return data;
+    } catch (err) {
+      console.error('Reverse geocoding failed:', err);
+      return null;
+    }
+  };
+
+  const searchAddress = async () => {
+    const searchQuery = `${formData.addressLine1}, ${formData.city}, ${formData.state}, ${formData.country}`.trim();
+    if (!searchQuery) return;
+
+    setIsMapLoading(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`
+      );
+      const data = await response.json();
+
+      if (data && data.length > 0) {
+        const { lat, lon, display_name } = data[0];
+        setMapCenter({ lat: parseFloat(lat), lng: parseFloat(lon) });
+        setSelectedLocation({ lat: parseFloat(lat), lng: parseFloat(lon) });
+
+        // Parse and auto-fill form
+        const addr = data[0].address || {};
+        setFormData(prev => ({
+          ...prev,
+          addressLine1: display_name?.split(',')[0] || prev.addressLine1,
+          city: addr.city || addr.town || addr.village || prev.city,
+          state: addr.state || prev.state,
+          postalCode: addr.postcode || prev.postalCode
+        }));
+
+        setShowMap(true);
+      } else {
+        alert('Location not found. Try a different search term.');
+      }
+    } catch (err) {
+      console.error('Location search failed:', err);
+    }
+    setIsMapLoading(false);
+  };
+
+  const detectCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setIsMapLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setMapCenter({ lat: latitude, lng: longitude });
+        setSelectedLocation({ lat: latitude, lng: longitude });
+        setShowMap(true);
+        setIsMapLoading(false);
+      },
+      () => {
+        alert('Unable to retrieve your location');
+        setIsMapLoading(false);
+      }
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -111,7 +188,8 @@ export default function AddressesPage() {
       await userApi.addAddress(user.id, formData);
       await fetchAddresses();
       setIsModalOpen(false);
-      // Reset form
+      setShowMap(false);
+      setSelectedLocation(null);
       setFormData({
         type: 'home',
         label: 'Home',
@@ -138,7 +216,7 @@ export default function AddressesPage() {
     try {
       await userApi.deleteAddress(user.id, addressId);
       setAddresses((prev) => prev.filter((address) => address.id !== addressId));
-      await fetchAddresses(); // Re-sync
+      await fetchAddresses();
     } catch (err) {
       alert('Failed to delete address');
     }
@@ -159,11 +237,11 @@ export default function AddressesPage() {
       <Link to="/account" className="inline-flex items-center gap-2 text-gray-500 hover:text-primary-600 mb-8 transition-colors">
         <ArrowLeft className="w-4 h-4" /> Back to Account
       </Link>
-      
+
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">My Addresses</h1>
         {addresses.length > 0 && (
-          <button 
+          <button
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-primary-700 transition-all"
           >
@@ -180,7 +258,7 @@ export default function AddressesPage() {
         <div className="bg-white p-12 rounded-2xl border-2 border-dashed border-gray-200 text-center">
           <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500 mb-6">You haven't saved any addresses yet.</p>
-          <button 
+          <button
             onClick={() => setIsModalOpen(true)}
             className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 transition-colors"
           >
@@ -202,7 +280,7 @@ export default function AddressesPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button 
+                  <button
                     onClick={() => handleDelete(address.id)}
                     className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                   >
@@ -210,7 +288,7 @@ export default function AddressesPage() {
                   </button>
                 </div>
               </div>
-              
+
               <div className="space-y-1 text-gray-600 text-sm mb-6">
                 <p className="font-bold text-gray-900">{address.recipientName}</p>
                 <p>{address.addressLine1}</p>
@@ -223,7 +301,7 @@ export default function AddressesPage() {
               </div>
 
               {!address.isDefault && (
-                <button 
+                <button
                   onClick={() => handleSetDefault(address.id)}
                   className="w-full py-2 text-primary-600 font-bold text-xs border border-primary-100 rounded-lg hover:bg-primary-50 transition-all"
                 >
@@ -238,15 +316,18 @@ export default function AddressesPage() {
       {/* Add Address Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-scale-in">
-            <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-xl font-bold">Add New Address</h2>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full">
+          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-scale-in max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center p-6 border-b shrink-0">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-primary-500" />
+                Add New Address
+              </h2>
+              <button onClick={() => { setIsModalOpen(false); setShowMap(false); setSelectedLocation(null); }} className="p-2 hover:bg-gray-100 rounded-full">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[80vh]">
+            <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1">
               {error && (
                 <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm border border-red-100">
                   {error}
@@ -280,10 +361,76 @@ export default function AddressesPage() {
                   <input type="tel" name="phone" required value={formData.phone} onChange={handleInputChange} className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="+1 (555) 000-0000" />
                 </div>
 
+                {/* Address Line 1 with Pin Button */}
                 <div className="col-span-2">
-                  <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Address Line 1</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-bold text-gray-400 uppercase">Address Line 1</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowMap(!showMap)}
+                      className="text-xs text-primary-600 font-bold flex items-center gap-1 hover:text-primary-700"
+                    >
+                      <MapPin className="w-3 h-3" /> {showMap ? 'Hide Map' : 'Pin on Map'}
+                    </button>
+                  </div>
                   <input type="text" name="addressLine1" required value={formData.addressLine1} onChange={handleInputChange} className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Street address, P.O. box" />
                 </div>
+
+                {/* Interactive Map */}
+                {showMap && (
+                  <div className="col-span-2">
+                    <div className="mb-2 flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={detectCurrentLocation}
+                        disabled={isMapLoading}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-primary-50 text-primary-600 text-xs font-bold rounded-lg hover:bg-primary-100 transition-all disabled:opacity-50"
+                      >
+                        <Crosshair className="w-3 h-3" /> My Location
+                      </button>
+                      <button
+                        type="button"
+                        onClick={searchAddress}
+                        disabled={isMapLoading}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-bold rounded-lg hover:bg-gray-200 transition-all disabled:opacity-50"
+                      >
+                        <Navigation className="w-3 h-3" /> Search
+                      </button>
+                      {isMapLoading && <span className="text-xs text-gray-400">Loading...</span>}
+                    </div>
+
+                    {/* OpenStreetMap Embed */}
+                    <div
+                      ref={mapContainerRef}
+                      className="relative w-full h-56 bg-gray-100 rounded-xl overflow-hidden border-2 border-gray-200"
+                    >
+                      <iframe
+                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${mapCenter.lng - 0.05},${mapCenter.lat - 0.03},${mapCenter.lng + 0.05},${mapCenter.lat + 0.03}&layer=mapnik&marker=${selectedLocation?.lat || mapCenter.lat},${selectedLocation?.lng || mapCenter.lng}`}
+                        className="w-full h-full"
+                        style={{ border: 0 }}
+                        title="Location Picker"
+                      />
+
+                      {/* Pin Overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="relative">
+                          <div className="absolute -top-1 -left-1 w-8 h-8 bg-primary-600/20 rounded-full animate-ping" />
+                          <MapPin className="w-10 h-10 text-primary-600 drop-shadow-lg relative z-10" />
+                        </div>
+                      </div>
+
+                      <p className="absolute bottom-2 left-2 bg-white/90 px-3 py-1 rounded-lg text-xs text-gray-600 shadow">
+                        Click on map or use buttons to locate
+                      </p>
+                    </div>
+
+                    {selectedLocation && (
+                      <p className="mt-2 text-xs text-green-600 font-medium">
+                        Location pinned: {selectedLocation.lat.toFixed(4)}, {selectedLocation.lng.toFixed(4)}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <div className="col-span-2">
                   <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Address Line 2 (Optional)</label>
@@ -321,18 +468,18 @@ export default function AddressesPage() {
               </div>
 
               <div className="flex items-center gap-3 mb-8">
-                <input 
-                  type="checkbox" 
-                  id="isDefault" 
-                  name="isDefault" 
-                  checked={formData.isDefault} 
+                <input
+                  type="checkbox"
+                  id="isDefault"
+                  name="isDefault"
+                  checked={formData.isDefault}
                   onChange={handleInputChange}
-                  className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500" 
+                  className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                 />
                 <label htmlFor="isDefault" className="text-sm font-medium text-gray-700">Set as default address</label>
               </div>
 
-              <button 
+              <button
                 type="submit"
                 disabled={isSubmitting}
                 className="w-full py-4 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 flex items-center justify-center gap-2 disabled:opacity-70"
