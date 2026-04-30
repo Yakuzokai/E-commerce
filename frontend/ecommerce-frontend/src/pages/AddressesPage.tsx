@@ -243,7 +243,7 @@ export default function AddressesPage() {
         {addresses.length > 0 && (
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-primary-700 transition-all"
+            className="btn-primary"
           >
             <Plus className="w-4 h-4" /> Add New
           </button>
@@ -260,7 +260,7 @@ export default function AddressesPage() {
           <p className="text-gray-500 mb-6">You haven't saved any addresses yet.</p>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 transition-colors"
+            className="btn-primary"
           >
             <Plus className="w-5 h-5" /> Add New Address
           </button>
@@ -303,7 +303,7 @@ export default function AddressesPage() {
               {!address.isDefault && (
                 <button
                   onClick={() => handleSetDefault(address.id)}
-                  className="w-full py-2 text-primary-600 font-bold text-xs border border-primary-100 rounded-lg hover:bg-primary-50 transition-all"
+                  className="btn-outline btn-sm w-full"
                 >
                   Set as Default
                 </button>
@@ -482,7 +482,7 @@ export default function AddressesPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-4 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 flex items-center justify-center gap-2 disabled:opacity-70"
+                className="btn-primary btn-full"
               >
                 {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
                 Save Address

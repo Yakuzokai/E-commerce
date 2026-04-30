@@ -27,7 +27,160 @@
   }
 }
 
+@layer components {
+  /* ===== BUTTON SYSTEM ===== */
 
+  /* Primary Button - Main CTA */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3
+           bg-primary-600 text-white font-semibold rounded-xl
+           hover:bg-primary-700 active:bg-primary-800
+           transition-all duration-200 ease-in-out
+           shadow-sm hover:shadow-md
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+
+  /* Secondary Button - Secondary actions */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3
+           bg-gray-100 text-gray-900 font-semibold rounded-xl
+           hover:bg-gray-200 active:bg-gray-300
+           transition-all duration-200 ease-in-out
+           disabled:opacity-50 disabled:cursor-not-allowed
+           focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2;
+  }
+
+  /* Outline Button - Bordered actions */
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3
+           border-2 border-primary-600 text-primary-600 font-semibold rounded-xl
+           hover:bg-primary-50 active:bg-primary-100
+           transition-all duration-200 ease-in-out
+           disabled:opacity-50 disabled:cursor-not-allowed
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+
+  /* Ghost Button - Text-only actions */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2
+           text-gray-600 font-medium rounded-lg
+           hover:bg-gray-100 active:bg-gray-200
+           transition-all duration-200 ease-in-out
+           disabled:opacity-50 disabled:cursor-not-allowed
+           focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2;
+  }
+
+  /* Danger Button - Destructive actions */
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3
+           bg-red-600 text-white font-semibold rounded-xl
+           hover:bg-red-700 active:bg-red-800
+           transition-all duration-200 ease-in-out
+           shadow-sm hover:shadow-md
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none
+           focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2;
+  }
+
+  /* Accent Button - Flash sales, special actions */
+  .btn-accent {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3
+           bg-accent-500 text-white font-semibold rounded-xl
+           hover:bg-accent-600 active:bg-accent-700
+           transition-all duration-200 ease-in-out
+           shadow-sm hover:shadow-md
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none
+           focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2;
+  }
+
+  /* Button Sizes */
+  .btn-sm {
+    @apply px-3 py-1.5 text-sm;
+  }
+
+  .btn-lg {
+    @apply px-8 py-4 text-lg;
+  }
+
+  /* Full Width Button */
+  .btn-full {
+    @apply w-full;
+  }
+
+  /* Icon Button */
+  .btn-icon {
+    @apply inline-flex items-center justify-center p-2 rounded-full
+           hover:bg-gray-100 active:bg-gray-200
+           transition-all duration-200 ease-in-out
+           disabled:opacity-50 disabled:cursor-not-allowed
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+
+  /* ===== FORM INPUTS ===== */
+
+  .input-primary {
+    @apply w-full px-4 py-3 border border-gray-300 rounded-xl
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+           placeholder:text-gray-400
+           transition-all duration-200 ease-in-out;
+  }
+
+  .input-error {
+    @apply border-red-500 focus:ring-red-500;
+  }
+
+  /* ===== CARDS ===== */
+
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden;
+  }
+
+  .card-hover {
+    @apply hover:shadow-xl hover:-translate-y-1 transition-all duration-300;
+  }
+
+  /* ===== BADGES ===== */
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold;
+  }
+
+  .badge-primary {
+    @apply bg-primary-100 text-primary-700;
+  }
+
+  .badge-success {
+    @apply bg-green-100 text-green-700;
+  }
+
+  .badge-warning {
+    @apply bg-amber-100 text-amber-700;
+  }
+
+  .badge-danger {
+    @apply bg-red-100 text-red-700;
+  }
+
+  /* ===== ANIMATIONS ===== */
+
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-countdown-pulse {
+    animation: countdownPulse 1s ease-in-out infinite;
+  }
+
+  @keyframes countdownPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+}
 
 img {
   object-position: top;
@@ -35,4 +188,35 @@ img {
 
 .fixed {
   position: fixed;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Remove number input spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
 }

@@ -274,15 +274,15 @@ export default function ProductPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-auto">
               <button
                 onClick={handleAddToCart}
-                className="flex items-center justify-center gap-3 px-8 py-4 border-2 border-primary-600 text-primary-600 font-bold rounded-2xl hover:bg-primary-50 transition-all shadow-lg shadow-primary-100"
+                className="btn-outline btn-lg"
               >
                 <ShoppingCart className="w-5 h-5" /> Add to Cart
               </button>
               <button
                 onClick={handleBuyNow}
-                className="flex items-center justify-center gap-3 px-8 py-4 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all shadow-lg shadow-primary-200"
+                className="btn-primary btn-lg"
               >
-                <Zap className="w-5 h-5 fill-current" /> Buy Now
+                <Zap className="w-5 h-5" /> Buy Now
               </button>
             </div>
 

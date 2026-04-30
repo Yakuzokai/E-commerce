@@ -9,7 +9,7 @@ export default function OrdersPage() {
       </div>
       <h1 className="text-2xl font-bold mb-2">You have no orders yet</h1>
       <p className="text-gray-500 mb-8">When you buy items, they will appear here.</p>
-      <Link to="/products" className="bg-primary-600 text-white px-8 py-3 rounded-lg hover:bg-primary-700 transition-colors">
+      <Link to="/products" className="btn-primary">
         Start Shopping
       </Link>
     </div>

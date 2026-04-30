@@ -54,7 +54,7 @@ export default function CartPage() {
           <p className="text-gray-500 mb-8">Looks like you haven't added anything to your cart yet.</p>
           <Link
             to="/products"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-primary-500 text-white font-semibold rounded-lg hover:bg-primary-600 transition-colors"
+            className="btn-primary btn-lg flex items-center gap-2"
           >
             Start Shopping <ArrowRight className="w-5 h-5" />
           </Link>
@@ -195,7 +195,7 @@ export default function CartPage() {
                   <button
                     type="button"
                     onClick={handleApplyCoupon}
-                    className="px-4 py-2 border border-primary-500 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors flex items-center gap-2"
+                    className="btn-outline btn-sm flex items-center gap-2"
                   >
                     <Ticket className="w-5 h-5" /> Apply
                   </button>
@@ -239,7 +239,7 @@ export default function CartPage() {
               {/* Checkout Button */}
               <Link
                 to="/checkout"
-                className="block w-full py-4 bg-primary-500 text-white text-center font-semibold rounded-lg hover:bg-primary-600 transition-colors"
+                className="btn-primary btn-full"
               >
                 Proceed to Checkout
               </Link>

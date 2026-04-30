@@ -140,7 +140,7 @@ sellerId: item.product.sellerId
           Thank you for your purchase. Your order has been received and is being processed. 
           You will be redirected to your orders page shortly.
         </p>
-        <Link to="/orders" className="bg-primary-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-primary-700 transition-all">
+        <Link to="/orders" className="btn-primary btn-lg">
           View My Orders
         </Link>
       </div>
@@ -151,7 +151,7 @@ sellerId: item.product.sellerId
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-4">
         <h1 className="text-2xl font-bold mb-4">Your cart is empty</h1>
-        <Link to="/products" className="bg-primary-600 text-white px-8 py-3 rounded-xl font-bold">
+        <Link to="/products" className="btn-primary">
           Start Shopping
         </Link>
       </div>
@@ -325,10 +325,10 @@ sellerId: item.product.sellerId
                 </div>
               </div>
               
-              <button 
+              <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-4 bg-primary-600 text-white font-bold rounded-lg hover:bg-primary-700 transition-colors shadow-lg shadow-primary-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                className="btn-primary btn-full"
               >
                 {isSubmitting ? (
                   <>

@@ -59,13 +59,13 @@ export default function HomePage() {
             <div className="flex flex-wrap gap-4">
               <Link
                 to="/products"
-                className="px-8 py-4 bg-white text-primary-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-2"
+                className="btn-primary btn-lg flex items-center gap-2"
               >
                 Shop Now <ArrowRight className="w-5 h-5" />
               </Link>
               <Link
                 to="/flash-sales"
-                className="px-8 py-4 bg-accent-500 text-white font-semibold rounded-lg hover:bg-accent-600 transition-colors"
+                className="btn-accent btn-lg"
               >
                 Flash Sales
               </Link>
@@ -107,7 +107,7 @@ export default function HomePage() {
             </div>
             <Link
               to="/flash-sales"
-              className="px-6 py-2 bg-white text-accent-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors"
+              className="btn-primary btn-sm"
             >
               Shop Now
             </Link>
@@ -211,7 +211,7 @@ export default function HomePage() {
             />
             <button
               type="submit"
-              className="px-6 py-3 bg-white text-secondary-600 font-semibold rounded-lg hover:bg-secondary-50 transition-colors"
+              className="btn-primary"
             >
               Subscribe
             </button>
