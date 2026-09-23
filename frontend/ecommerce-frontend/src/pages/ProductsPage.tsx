@@ -5,6 +5,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Filter, Grid, List, Star, ChevronDown, Search, Loader2, X } from 'lucide-react';
 import { productApi, categoryApi } from '@/lib/api';
+import { FALLBACK_PRODUCT_IMAGE, handleImageError } from '@/lib/utils';
 
 export default function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -209,7 +210,12 @@ function ProductCard({ product, viewMode }: { product: any; viewMode: 'grid' | '
     return (
       <Link to={`/products/${product.slug}`} className="bg-white p-3 flex gap-4 hover:shadow-md transition-all border border-gray-200 rounded-lg group">
         <div className="w-32 h-32 bg-gray-50 rounded overflow-hidden shrink-0">
-          <img src={product.images?.[0]?.url} alt={product.name} className="w-full h-full object-cover" />
+          <img
+            src={product.images?.[0]?.url || FALLBACK_PRODUCT_IMAGE}
+            alt={product.name}
+            className="w-full h-full object-cover"
+            onError={handleImageError}
+          />
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-bold text-gray-800 line-clamp-2 mb-1 group-hover:text-primary-600 transition-colors">{product.name}</h3>
@@ -229,7 +235,12 @@ function ProductCard({ product, viewMode }: { product: any; viewMode: 'grid' | '
   return (
     <Link to={`/products/${product.slug}`} className="bg-white shadow-sm hover:shadow-xl transition-all overflow-hidden border border-gray-200 group flex flex-col h-full rounded hover:-translate-y-1">
       <div className="relative aspect-square overflow-hidden bg-white">
-        <img src={product.images?.[0]?.url} alt={product.name} className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-500" />
+        <img
+          src={product.images?.[0]?.url || FALLBACK_PRODUCT_IMAGE}
+          alt={product.name}
+          className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-500"
+          onError={handleImageError}
+        />
         {discount > 0 && (
           <div className="absolute top-0 right-0 bg-accent-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-bl">
             -{discount}%

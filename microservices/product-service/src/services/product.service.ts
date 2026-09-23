@@ -460,22 +460,32 @@ export async function deleteProduct(productId: string, sellerId: string): Promis
 /**
  * Get trending products
  */
-export async function getTrendingProducts(limit: number = 20): Promise<Product[]> {
+export async function getTrendingProducts(limit: number = 20): Promise<any[]> {
   const cacheKey = `products:trending:${limit}`;
-  const cached = await cacheGet<Product[]>(cacheKey);
+  const cached = await cacheGet<any[]>(cacheKey);
   if (cached) return cached;
 
-  const result = await query<Product>(
-    `SELECT * FROM products
-     WHERE status = 'active' AND deleted_at IS NULL
-     ORDER BY (sold_count * 2 + view_count) DESC
+  const result = await query<any>(
+    `SELECT p.*,
+            (SELECT url FROM product_images WHERE product_id = p.id AND is_primary = true LIMIT 1) as primary_image,
+            (SELECT MIN(price) FROM product_variants WHERE product_id = p.id) as min_price,
+            (SELECT MIN(original_price) FROM product_variants WHERE product_id = p.id) as min_original_price
+     FROM products p
+     WHERE p.status = 'active' AND p.deleted_at IS NULL
+     ORDER BY (p.sold_count * 2 + p.view_count) DESC
      LIMIT $1`,
     [limit]
   );
 
-  await cacheSet(cacheKey, result.rows, CacheTTL.trending);
+  const products = result.rows.map((row: any) => ({
+    ...row,
+    images: row.primary_image ? [{ url: row.primary_image, is_primary: true }] : [],
+    variants: [{ price: parseFloat(row.min_price || '0'), originalPrice: row.min_original_price ? parseFloat(row.min_original_price) : undefined }]
+  }));
 
-  return result.rows;
+  await cacheSet(cacheKey, products, CacheTTL.trending);
+
+  return products;
 }
 
 /**
@@ -486,9 +496,10 @@ export async function getFlashSaleProducts(): Promise<any[]> {
   const cached = await cacheGet(cacheKey);
   if (cached) return cached;
 
-  const result = await query(
+  const result = await query<any>(
     `SELECT p.*, fsi.flash_price, fsi.original_price, fsi.stock_quantity, fsi.sold_quantity,
-            fs.start_time, fs.end_time, fs.name as flash_sale_name
+            fs.start_time, fs.end_time, fs.name as flash_sale_name,
+            (SELECT url FROM product_images WHERE product_id = p.id AND is_primary = true LIMIT 1) as primary_image
      FROM products p
      JOIN flash_sale_items fsi ON p.id = fsi.product_id
      JOIN flash_sales fs ON fsi.flash_sale_id = fs.id
@@ -500,9 +511,15 @@ export async function getFlashSaleProducts(): Promise<any[]> {
     []
   );
 
-  await cacheSet(cacheKey, result.rows, 60); // 1 minute cache
+  const products = result.rows.map((row: any) => ({
+    ...row,
+    images: row.primary_image ? [{ url: row.primary_image, is_primary: true }] : [],
+    variants: [{ price: parseFloat(row.flash_price || '0'), originalPrice: row.original_price ? parseFloat(row.original_price) : undefined }]
+  }));
 
-  return result.rows;
+  await cacheSet(cacheKey, products, 60);
+
+  return products;
 }
 
 /**

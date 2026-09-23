@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Zap, Timer, ArrowRight, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { productApi } from '@/lib/api';
+import { FALLBACK_PRODUCT_IMAGE, handleImageError } from '@/lib/utils';
 
 export default function FlashSalesPage() {
   const { data: flashSales, isLoading } = useQuery({
@@ -60,7 +61,12 @@ function FlashSaleCard({ product }: { product: any }) {
   return (
     <Link to={`/products/${product.slug}`} className="group bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-2xl transition-all">
       <div className="relative aspect-square">
-        <img src={product.images?.[0]?.url || 'https://via.placeholder.com/400'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+        <img
+          src={product.images?.[0]?.url || FALLBACK_PRODUCT_IMAGE}
+          alt={product.name}
+          onError={handleImageError}
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+        />
         <div className="absolute top-4 right-4 bg-accent-500 text-white font-black px-3 py-1.5 rounded-lg shadow-lg">
           -{discount}%
         </div>

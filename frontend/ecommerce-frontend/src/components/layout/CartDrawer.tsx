@@ -3,6 +3,7 @@
 import { Link } from 'react-router-dom';
 import { X, Plus, Minus, Trash2, ShoppingBag } from 'lucide-react';
 import { useCartStore } from '@/stores';
+import { FALLBACK_PRODUCT_IMAGE, handleImageError } from '@/lib/utils';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -61,9 +62,10 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden shrink-0">
                     {item.product?.images?.[0]?.url ? (
                       <img
-                        src={item.product.images[0].url}
+                        src={item.product.images[0].url || FALLBACK_PRODUCT_IMAGE}
                         alt={item.product.name}
                         className="w-full h-full object-cover"
+                        onError={handleImageError}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-400">

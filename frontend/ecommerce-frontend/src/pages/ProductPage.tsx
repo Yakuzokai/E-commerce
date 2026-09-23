@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { productApi } from '@/lib/api';
 import { useCartStore } from '@/stores';
+import { FALLBACK_PRODUCT_IMAGE, handleImageError } from '@/lib/utils';
 
 // Mock product for initial state
 const mockProduct: any = {
@@ -26,7 +27,7 @@ const mockProduct: any = {
   name: 'Loading Product...',
   description: '',
   variants: [{ id: '1', name: 'Standard', price: 0, originalPrice: 0, stockQuantity: 0 }],
-  images: [{ url: 'https://via.placeholder.com/800' }],
+  images: [{ url: FALLBACK_PRODUCT_IMAGE }],
   ratingAvg: 0,
   ratingCount: 0,
   soldCount: 0,
@@ -126,8 +127,9 @@ export default function ProductPage() {
           <div className="space-y-4">
             <div className="relative aspect-square bg-white rounded-xl overflow-hidden shadow-sm">
               <img
-                src={productImages[currentImageIndex]?.url || 'https://via.placeholder.com/800'}
+                src={productImages[currentImageIndex]?.url || FALLBACK_PRODUCT_IMAGE}
                 alt={product.name}
+                onError={handleImageError}
                 className="w-full h-full object-contain p-4"
               />
               {discount > 0 && (
@@ -161,7 +163,12 @@ export default function ProductPage() {
                     currentImageIndex === index ? 'border-primary-500 shadow-md' : 'border-transparent opacity-70 hover:opacity-100'
                   }`}
                 >
-                  <img src={img.url} alt="" className="w-full h-full object-cover" />
+                  <img
+                    src={img.url || FALLBACK_PRODUCT_IMAGE}
+                    alt=""
+                    className="w-full h-full object-cover"
+                    onError={handleImageError}
+                  />
                 </button>
               ))}
             </div>
@@ -387,8 +394,9 @@ export default function ProductPage() {
               >
                 <div className="aspect-square overflow-hidden bg-gray-50">
                   <img
-                    src={item.images?.[0]?.url || 'https://via.placeholder.com/400'}
+                    src={item.images?.[0]?.url || FALLBACK_PRODUCT_IMAGE}
                     alt={item.name}
+                    onError={handleImageError}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 </div>

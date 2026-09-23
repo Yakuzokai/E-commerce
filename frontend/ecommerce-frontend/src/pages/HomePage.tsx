@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, Zap, Shield, Truck, CreditCard, Star } from 'lucide-react';
 import { productApi } from '@/lib/api';
+import { FALLBACK_PRODUCT_IMAGE, handleImageError } from '@/lib/utils';
 import type { Product } from '@/types';
 
 // Mock data for demo when API is not available
@@ -182,6 +183,7 @@ export default function HomePage() {
                 <img
                   src={category.image}
                   alt={category.name}
+                  onError={handleImageError}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
@@ -240,8 +242,9 @@ function ProductCard({ product }: { product: any }) {
     >
       <div className="relative aspect-square overflow-hidden bg-gray-100">
         <img
-          src={product.images?.[0]?.url || 'https://via.placeholder.com/400'}
+          src={product.images?.[0]?.url || FALLBACK_PRODUCT_IMAGE}
           alt={product.name}
+          onError={handleImageError}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
         {discount > 0 && (

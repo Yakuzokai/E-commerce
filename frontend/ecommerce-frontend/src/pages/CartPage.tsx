@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Ticket } from 'lucide-react';
 import { useCartStore } from '@/stores';
+import { FALLBACK_PRODUCT_IMAGE, handleImageError } from '@/lib/utils';
 
 export default function CartPage() {
   const { items, totalItems, subtotal, updateQuantity, removeItem, clearCart } = useCartStore();
@@ -89,8 +90,9 @@ export default function CartPage() {
                       <div className="col-span-1 md:col-span-6 flex gap-4">
                         <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden shrink-0">
                           <img
-                            src={item.product?.images?.[0]?.url || 'https://via.placeholder.com/100'}
+                            src={item.product?.images?.[0]?.url || FALLBACK_PRODUCT_IMAGE}
                             alt={item.product?.name}
+                            onError={handleImageError}
                             className="w-full h-full object-cover"
                           />
                         </div>
