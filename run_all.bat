@@ -16,6 +16,7 @@ echo [2/3] Starting Backend Microservices...
 echo ===================================================
 
 :: Core Services
+start "Gateway" cmd /k "cd microservices/api-gateway && npm run dev"
 start "Auth" cmd /k "cd microservices/auth-service && npm run dev"
 start "User" cmd /k "cd microservices/user-service && npm run dev"
 start "Product" cmd /k "cd microservices/product-service && npm run dev"

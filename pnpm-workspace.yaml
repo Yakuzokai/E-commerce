@@ -1,0 +1,3 @@
+packages:
+  - 'microservices/*'
+  - 'frontend/ecommerce-frontend'

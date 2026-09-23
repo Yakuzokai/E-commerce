@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+**/node_modules/
 .pnp
 .pnp.js
 
@@ -9,11 +10,14 @@ coverage/
 # Production
 build/
 dist/
+**/dist/
 
 # Environment
 .env
 .env.local
 .env.*.local
+**/.env
+**/.env.*
 
 # IDE
 .vscode/
@@ -36,10 +40,6 @@ npm-debug.log*
 
 # Docker
 docker-compose.override.yml
-
-# Terraform
-*.tfstate
-*.tfstate.backup
 
 # Misc
 *.bak
