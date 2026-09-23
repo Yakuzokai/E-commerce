@@ -30,6 +30,9 @@ async function start() {
 
     await fraudDetectionService.initialize();
 
+    // Start Kafka consumer
+    await kafkaService.run();
+
     app.listen(config.port, () => {
       logger.info(`Fraud Detection Service listening on port ${config.port}`);
     });

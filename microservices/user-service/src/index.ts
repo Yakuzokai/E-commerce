@@ -9,9 +9,11 @@ import { config } from './config';
 import { logger } from './utils/logger';
 import { runMigrations } from './db/migrate';
 import { connectProducer, disconnectProducer } from './services/kafka.service';
+import { startUserSync, stopUserSync } from './services/user-sync.service';
 import * as userService from './services/user.service';
 
 const app = express();
+
 
 // Middleware
 app.use(helmet());
@@ -97,7 +99,12 @@ app.post('/api/users/:userId/addresses', async (req: Request, res: Response) => 
     const address = await userService.addAddress(req.params.userId, req.body);
     res.status(201).json(address);
   } catch (error: any) {
-    logger.error('Error adding address', { error: error.message });
+    logger.error('Error adding address', { 
+      error: error.message,
+      stack: error.stack,
+      body: req.body,
+      userId: req.params.userId
+    });
     res.status(500).json({ error: error.message });
   }
 });
@@ -235,6 +242,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 const shutdown = async () => {
   logger.info('Shutting down...');
   await disconnectProducer();
+  await stopUserSync();
   process.exit(0);
 };
 
@@ -246,6 +254,7 @@ const start = async () => {
   try {
     await runMigrations();
     await connectProducer();
+    await startUserSync();
     app.listen(config.port, () => {
       logger.info(`User service listening on port ${config.port}`);
     });

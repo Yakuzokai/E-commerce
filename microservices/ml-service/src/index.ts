@@ -33,6 +33,9 @@ async function start() {
     await collaborativeFilteringService.initialize();
     await abTestingService.initialize();
 
+    // Start Kafka consumer
+    await kafkaService.run();
+
     // Schedule daily model retraining
     cron.schedule(config.ml.modelUpdateInterval, async () => {
       logger.info('Starting scheduled model retraining');

@@ -94,7 +94,7 @@ app.get('/api/v1/products/:id', async (req, res) => {
       return;
     }
     // Increment view count
-    productService.incrementViewCount(req.params.id).catch(() => {});
+    productService.incrementViewCount(req.params.id).catch(() => { });
     res.json({ data: product });
   } catch (error) {
     logger.error('Get product error', { error: (error as Error).message });
@@ -109,7 +109,7 @@ app.get('/api/v1/products/slug/:slug', async (req, res) => {
       res.status(404).json({ error: 'Product not found' });
       return;
     }
-    productService.incrementViewCount(product.id).catch(() => {});
+    productService.incrementViewCount(product.id).catch(() => { });
     res.json({ data: product });
   } catch (error) {
     logger.error('Get product by slug error', { error: (error as Error).message });

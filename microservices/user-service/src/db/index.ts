@@ -35,6 +35,21 @@ export async function queryOne<T>(text: string, params?: any[]): Promise<T | nul
   return rows[0] || null;
 }
 
+export async function transaction<T>(callback: (client: any) => Promise<T>): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await callback(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export async function closePool(): Promise<void> {
   await pool.end();
 }

@@ -2,7 +2,7 @@
  * User Service - Business Logic
  */
 
-import { query, queryOne } from '../db';
+import { query, queryOne, transaction } from '../db';
 import { User, Address, UserPreferences, CreateAddressRequest, UpdateUserRequest, PaginatedResponse } from '../types';
 import { publishEvent, USER_TOPICS } from './kafka.service';
 import { logger } from '../utils/logger';
@@ -123,101 +123,194 @@ export async function updateUser(userId: string, data: UpdateUserRequest): Promi
 }
 
 /**
+ * Map database row to Address type
+ */
+function mapAddress(row: any): Address {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    type: row.type,
+    label: row.label,
+    recipientName: row.recipient_name,
+    phone: row.phone,
+    addressLine1: row.address_line_1,
+    addressLine2: row.address_line_2,
+    city: row.city,
+    state: row.state,
+    postalCode: row.postal_code,
+    country: row.country,
+    latitude: row.latitude ? parseFloat(row.latitude) : undefined,
+    longitude: row.longitude ? parseFloat(row.longitude) : undefined,
+    isDefault: row.is_default,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+/**
  * Get user addresses
  */
 export async function getUserAddresses(userId: string): Promise<Address[]> {
-  return query<Address>(
+  const rows = await query<any>(
     'SELECT * FROM addresses WHERE user_id = $1 ORDER BY is_default DESC, created_at DESC',
     [userId]
   );
+  return rows.map(mapAddress);
 }
 
 /**
  * Get address by ID
  */
 export async function getAddressById(addressId: string): Promise<Address | null> {
-  return queryOne<Address>(
+  const row = await queryOne<any>(
     'SELECT * FROM addresses WHERE id = $1',
     [addressId]
   );
+  return row ? mapAddress(row) : null;
 }
 
 /**
  * Add address
  */
 export async function addAddress(userId: string, data: CreateAddressRequest): Promise<Address> {
-  // If this is default, unset other defaults
-  if (data.isDefault) {
-    await query(
-      'UPDATE addresses SET is_default = FALSE WHERE user_id = $1',
-      [userId]
+  return transaction(async (client) => {
+    // Check if user already has addresses
+    const existingResult = await client.query('SELECT COUNT(*) FROM addresses WHERE user_id = $1', [userId]);
+    const addressCount = parseInt(existingResult.rows[0].count);
+
+    // If this is default or if it's the first address, unset other defaults
+    const shouldBeDefault = data.isDefault || addressCount === 0;
+
+    if (shouldBeDefault) {
+      await client.query('UPDATE addresses SET is_default = FALSE WHERE user_id = $1', [userId]);
+    }
+
+    const res = await client.query(
+      `INSERT INTO addresses (user_id, type, label, recipient_name, phone, address_line_1, address_line_2, city, state, postal_code, country, is_default, latitude, longitude)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+       RETURNING *`,
+      [
+        userId, 
+        data.type, 
+        data.label, 
+        data.recipientName, 
+        data.phone, 
+        data.addressLine1, 
+        data.addressLine2 || null, 
+        data.city, 
+        data.state, 
+        data.postalCode, 
+        data.country, 
+        shouldBeDefault,
+        data.latitude,
+        data.longitude
+      ]
     );
-  }
 
-  const address = await queryOne<Address>(
-    `INSERT INTO addresses (user_id, type, label, recipient_name, phone, address_line_1, address_line_2, city, state, postal_code, country, is_default)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-     RETURNING *`,
-    [userId, data.type, data.label, data.recipientName, data.phone, data.addressLine1, data.addressLine2, data.city, data.state, data.postalCode, data.country, data.isDefault || false]
-  );
-
-  logger.info('Address added', { userId, addressId: address!.id });
-  return address!;
+    const address = mapAddress(res.rows[0]);
+    logger.info('Address added', { userId, addressId: address.id, isDefault: shouldBeDefault });
+    return address;
+  });
 }
 
 /**
  * Update address
  */
 export async function updateAddress(addressId: string, data: Partial<CreateAddressRequest>): Promise<Address | null> {
-  const fields: string[] = [];
-  const values: any[] = [];
-  let paramIndex = 1;
+  return transaction(async (client) => {
+    const fields: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
 
-  for (const [key, value] of Object.entries(data)) {
-    if (value !== undefined) {
-      const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-      fields.push(`${snakeKey} = $${paramIndex++}`);
-      values.push(value);
+    // Get current address to check user_id
+    const currentRes = await client.query('SELECT user_id, is_default FROM addresses WHERE id = $1', [addressId]);
+    if (currentRes.rows.length === 0) return null;
+    const { user_id: userId } = currentRes.rows[0];
+
+    if (data.isDefault === true) {
+      await client.query('UPDATE addresses SET is_default = FALSE WHERE user_id = $1', [userId]);
     }
-  }
 
-  if (fields.length === 0) {
-    return getAddressById(addressId);
-  }
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== undefined) {
+        let snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+        
+        // Fix specific mapping for address lines which have underscores before the number
+        if (snakeKey === 'address_line1') snakeKey = 'address_line_1';
+        if (snakeKey === 'address_line2') snakeKey = 'address_line_2';
+        
+        fields.push(`${snakeKey} = $${paramIndex++}`);
+        values.push(value === '' ? null : value);
+      }
+    }
 
-  fields.push('updated_at = CURRENT_TIMESTAMP');
-  values.push(addressId);
+    if (fields.length === 0) {
+      const res = await client.query('SELECT * FROM addresses WHERE id = $1', [addressId]);
+      return mapAddress(res.rows[0]);
+    }
 
-  return queryOne<Address>(
-    `UPDATE addresses SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
-    values
-  );
+    fields.push('updated_at = CURRENT_TIMESTAMP');
+    
+    // Add addressId and userId to params
+    const finalValues = [...values, addressId, userId];
+    const addrIdIdx = paramIndex;
+    const usrIdIdx = paramIndex + 1;
+
+    const res = await client.query(
+      `UPDATE addresses SET ${fields.join(', ')} WHERE id = $${addrIdIdx} AND user_id = $${usrIdIdx} RETURNING *`,
+      finalValues
+    );
+
+    return res.rows[0] ? mapAddress(res.rows[0]) : null;
+  });
 }
 
 /**
  * Delete address
  */
 export async function deleteAddress(addressId: string, userId: string): Promise<boolean> {
-  const result = await query(
-    'DELETE FROM addresses WHERE id = $1 AND user_id = $2',
-    [addressId, userId]
-  );
-  return (result as any).rowCount > 0;
+  return transaction(async (client) => {
+    // Check if we are deleting the default address
+    const checkRes = await client.query('SELECT is_default FROM addresses WHERE id = $1 AND user_id = $2', [addressId, userId]);
+    if (checkRes.rows.length === 0) return false;
+    
+    const wasDefault = checkRes.rows[0].is_default;
+
+    const deleteRes = await client.query(
+      'DELETE FROM addresses WHERE id = $1 AND user_id = $2',
+      [addressId, userId]
+    );
+
+    if (deleteRes.rowCount > 0 && wasDefault) {
+      // Pick the next most recent address and make it default
+      await client.query(
+        `UPDATE addresses SET is_default = TRUE 
+         WHERE id = (SELECT id FROM addresses WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1)`,
+        [userId]
+      );
+    }
+
+    return deleteRes.rowCount > 0;
+  });
 }
 
 /**
  * Set default address
  */
 export async function setDefaultAddress(addressId: string, userId: string): Promise<Address | null> {
-  await query(
-    'UPDATE addresses SET is_default = FALSE WHERE user_id = $1',
-    [userId]
-  );
+  return transaction(async (client) => {
+    await client.query(
+      'UPDATE addresses SET is_default = FALSE WHERE user_id = $1',
+      [userId]
+    );
 
-  return queryOne<Address>(
-    'UPDATE addresses SET is_default = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND user_id = $2 RETURNING *',
-    [addressId, userId]
-  );
+    const res = await client.query(
+      'UPDATE addresses SET is_default = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND user_id = $2 RETURNING *',
+      [addressId, userId]
+    );
+
+    return res.rows[0] ? mapAddress(res.rows[0]) : null;
+  });
 }
 
 /**

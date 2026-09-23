@@ -15,7 +15,7 @@ const envSchema = z.object({
   KAFKA_BROKERS: z.string().default('localhost:9092'),
   KAFKA_CLIENT_ID: z.string().default('order-service'),
   AUTH_SERVICE_URL: z.string().default('http://localhost:3001'),
-  PAYMENT_SERVICE_URL: z.string().default('http://localhost:3005'),
+  PAYMENT_SERVICE_URL: z.string().default('http://localhost:3015'),
   SERVICE_NAME: z.string().default('order-service'),
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
 });

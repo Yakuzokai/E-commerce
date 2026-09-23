@@ -1,6 +1,6 @@
 export type UserStatus = 'active' | 'inactive' | 'suspended' | 'banned';
 export type Gender = 'male' | 'female' | 'other' | 'prefer_not_to_say';
-export type AddressType = 'shipping' | 'billing' | 'both';
+export type AddressType = 'home' | 'work' | 'other';
 
 export interface User {
   id: string;
@@ -33,6 +33,8 @@ export interface Address {
   state: string;
   postalCode: string;
   country: string;
+  latitude?: number;
+  longitude?: number;
   isDefault: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -61,6 +63,8 @@ export interface CreateAddressRequest {
   state: string;
   postalCode: string;
   country: string;
+  latitude?: number;
+  longitude?: number;
   isDefault?: boolean;
 }
 
